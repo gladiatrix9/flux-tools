@@ -15,12 +15,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy tools/ to WP Engine
-        uses: wpengine/github-action-wpe-push@v3
+        uses: wpengine/github-action-wpe-site-deploy@v3
         with:
           WPE_ENV: fluxprd
           WPE_SSHG_KEY_PRIVATE: ${{ secrets.WPE_SSHG_KEY_PRIVATE }}
-          FLAGS: -azvr --inplace --delete
-            --exclude=".*"
-            --exclude="apps-script/"
-            --exclude=".github/"
-            --exclude="*.md"
+          SRC_PATH: "tools/"
+          REMOTE_PATH: "tools/"
+          FLAGS: -azvr --inplace --delete --exclude=.*
