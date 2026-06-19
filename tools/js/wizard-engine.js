@@ -50,6 +50,17 @@ function wizStart(pid, fresh) {
   wizRender(pid);
 }
 
+// ORP chip update — calc() skips ORP, so we handle it here and in wizRenderReview
+function applyOrpChip(pid, val) {
+  const orpChip = document.getElementById(pid+'-orp-result');
+  if (!orpChip || !val) return;
+  const v = parseFloat(val);
+  const ok   = v >= 650 && v <= 750;
+  const warn = (v >= 600 && v < 650) || (v > 750 && v <= 800);
+  orpChip.className = ok ? 'result-chip ok' : warn ? 'result-chip warn' : 'result-chip alert';
+  orpChip.innerHTML = `<span class="chip-dot"></span>${val} mV`;
+}
+
 function wizResume(pid) {
   const b = document.getElementById('wiz-'+pid+'-resume');
   if (b) b.style.display = 'none';
@@ -64,6 +75,7 @@ function wizResume(pid) {
         if (el) el.value = kv[1];
       });
       calc(pid);
+      applyOrpChip(pid, _wizState[pid].values.orp); // calc() doesn't handle ORP
     }
   } catch(e) { wizStart(pid,false); return; }
   wizRender(pid);
@@ -143,6 +155,7 @@ function wizRenderReview(pid) {
   const navEl  = document.getElementById('wiz-'+pid+'-nav');
   if (!stepEl || !navEl) return;
 
+  applyOrpChip(pid, st.values.orp); // ensure ORP chip is current before reading outerHTML
   const rows = WIZ_STEPS.map(function(s) {
     const chipEl = document.getElementById(pid+'-'+s.field+'-result');
     const chipH  = chipEl ? chipEl.outerHTML.replace(/id="[^"]*"/,'') : '';
@@ -214,17 +227,10 @@ function wizOnInput(pid, field, val) {
   if (hidden) { hidden.value = val; calc(pid); }
   // ORP: calc() doesn't evaluate it, update chip directly
   if (field === 'orp') {
+    applyOrpChip(pid, val);
     const orpChip = document.getElementById(pid+'-orp-result');
     const disp    = document.getElementById('wiz-rc-'+pid);
-    if (orpChip && val) {
-      const v = parseFloat(val);
-      const ok = v >= 650 && v <= 750;
-      const warn = (v >= 600 && v < 650) || (v > 750 && v <= 800);
-      const cls = ok ? 'result-chip ok' : warn ? 'result-chip warn' : 'result-chip alert';
-      orpChip.className = cls;
-      orpChip.innerHTML = `<span class="chip-dot"></span>${val} mV`;
-      if (disp) { disp.className = orpChip.className; disp.innerHTML = orpChip.innerHTML; }
-    }
+    if (orpChip && disp) { disp.className = orpChip.className; disp.innerHTML = orpChip.innerHTML; }
   } else {
     const srcChip  = document.getElementById(pid+'-'+field+'-result');
     const dispChip = document.getElementById('wiz-rc-'+pid);
