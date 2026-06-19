@@ -21,7 +21,7 @@ const SUMMARY_EMAIL  = 'hello@flux-lounge.com';
 // Bump this whenever Code.gs is redeployed — every JSON response includes
 // it, so the front end (and you, via the browser console) can confirm the
 // live deployment is actually running this version.
-const BACKEND_VERSION = '2026-06-11-poolstate-v1';
+const BACKEND_VERSION = '2026-06-19-poolstate-v2';
 
 const POOL_LABELS = {
   'sl-hot':  'Social Lounge — Hot Soak',
@@ -573,4 +573,36 @@ function jsonResponse(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ─── DIAGNOSTIC: CHECK SHEET HEADERS ─────────────────────────
+// Run this directly from the Apps Script editor to verify both sheets
+// are configured correctly. Does NOT write any data.
+
+function testWeeklyParamsSave() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'M/d/yyyy, h:mm:ss a');
+
+  // ── Check Weekly Parameters sheet ──
+  const wpSheet = ss.getSheetByName('Weekly Parameters');
+  Logger.log('Weekly Parameters sheet found: ' + !!wpSheet);
+  if (wpSheet) {
+    const header = wpSheet.getDataRange().getValues()[0].map(h => String(h).trim().toLowerCase());
+    Logger.log('Weekly Parameters headers: ' + JSON.stringify(header));
+    Logger.log('pool id col: ' + header.indexOf('pool id'));
+    Logger.log('calcium col: ' + header.indexOf('calcium hardness (ppm)'));
+    Logger.log('tds col: ' + header.indexOf('tds (ppm)'));
+    Logger.log('last updated col: ' + header.indexOf('last updated'));
+  }
+
+  // ── Check Pool State sheet ──
+  const psSheet = ss.getSheetByName('Pool State');
+  Logger.log('Pool State sheet found: ' + !!psSheet);
+  if (psSheet) {
+    const header = psSheet.getDataRange().getValues()[0].map(h => String(h).trim().toLowerCase());
+    Logger.log('Pool State headers: ' + JSON.stringify(header));
+    Logger.log('pool id col: ' + header.indexOf('pool id'));
+    Logger.log('calcium col: ' + header.indexOf('calcium hardness (ppm)'));
+    Logger.log('tds col: ' + header.indexOf('tds (ppm)'));
+  }
 }

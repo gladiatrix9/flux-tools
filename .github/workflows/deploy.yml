@@ -1,0 +1,25 @@
+name: Deploy to WP Engine
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/**'   # only runs when tools/ files change
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy tools/ to WP Engine
+        uses: wpengine/github-action-wpe-push@v3
+        with:
+          WPE_ENV: fluxprd
+          WPE_SSHG_KEY_PRIVATE: ${{ secrets.WPE_SSHG_KEY_PRIVATE }}
+          FLAGS: -azvr --inplace --delete
+            --exclude=".*"
+            --exclude="apps-script/"
+            --exclude=".github/"
+            --exclude="*.md"

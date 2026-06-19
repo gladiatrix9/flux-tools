@@ -195,6 +195,45 @@ async function weeklyParamsSave() {
   if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
   if (status) status.textContent = '';
 
+  const now = new Date().toLocaleString('en-US', {
+    month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'
+  });
+
+  // Apply success UI: update timestamps, sync hidden inputs, recalc LSI
+  function applyWeeklySaveSuccess() {
+    pools.forEach(pid => {
+      const updEl = document.getElementById('wpr-'+pid+'-updated');
+      if (updEl) updEl.textContent = now;
+      // Sync to pool card hidden inputs
+      const ca  = document.getElementById('wpr-'+pid+'-calcium')?.value;
+      const tds = document.getElementById('wpr-'+pid+'-tds')?.value;
+      if (ca)  { const hid = document.getElementById(pid+'-calcium'); if (hid) hid.value = ca; }
+      if (tds) { const hid = document.getElementById(pid+'-tds');     if (hid) hid.value = tds; }
+      const chtdsUpd = document.getElementById(pid+'-chtds-updated');
+      if (chtdsUpd) chtdsUpd.textContent = now;
+      // saveWeeklyParams also pushes these values into Pool State server-side,
+      // so update our local caches the same way.
+      if (ca || tds) {
+        _weeklyParams    = _weeklyParams    || {};
+        _poolStateParams = _poolStateParams || {};
+        const wpRow = _weeklyParams[pid]    || {};
+        const psRow = _poolStateParams[pid] || {};
+        if (ca)  { wpRow.calcium = ca;  psRow.calcium = ca; }
+        if (tds) { wpRow.tds     = tds; psRow.tds     = tds; }
+        wpRow.updated = now; psRow.updated = now; psRow.source = 'weekly';
+        _weeklyParams[pid]    = wpRow;
+        _poolStateParams[pid] = psRow;
+      }
+      if (ca || tds) calc(pid);
+    });
+    checkDiscrepancies();
+    if (btn) { btn.textContent = 'Saved ✓'; }
+    if (status) status.textContent = `Saved at ${now}`;
+    setTimeout(() => {
+      if (btn) { btn.textContent = 'Save CH & TDS to Sheet'; btn.disabled = false; }
+    }, 3000);
+  }
+
   try {
     const res  = await fetch(SCRIPT_URL, {
       method:  'POST',
@@ -203,56 +242,20 @@ async function weeklyParamsSave() {
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.error || 'Save failed');
-
-    const now = new Date().toLocaleString('en-US', {
-      month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'
-    });
-
-    // Update timestamps in UI + sync hidden inputs + recalc LSI
-    pools.forEach(pid => {
-      const updEl = document.getElementById('wpr-'+pid+'-updated');
-      if (updEl) updEl.textContent = now;
-      // Sync to pool card hidden inputs
-      const ca = document.getElementById('wpr-'+pid+'-calcium')?.value;
-      const tds = document.getElementById('wpr-'+pid+'-tds')?.value;
-      if (ca) {
-        const hid = document.getElementById(pid+'-calcium');
-        if (hid) hid.value = ca;
-      }
-      if (tds) {
-        const hid = document.getElementById(pid+'-tds');
-        if (hid) hid.value = tds;
-      }
-      const chtdsUpd = document.getElementById(pid+'-chtds-updated');
-      if (chtdsUpd) chtdsUpd.textContent = now;
-
-      // saveWeeklyParams also pushes these values into Pool State server-side,
-      // so update our local caches the same way to keep the discrepancy
-      // check accurate without waiting on another fetch.
-      if (ca || tds) {
-        _weeklyParams = _weeklyParams || {};
-        _poolStateParams = _poolStateParams || {};
-        const wpRow = _weeklyParams[pid] || {};
-        const psRow = _poolStateParams[pid] || {};
-        if (ca)  { wpRow.calcium = ca;  psRow.calcium = ca; }
-        if (tds) { wpRow.tds     = tds; psRow.tds     = tds; }
-        wpRow.updated = now; psRow.updated = now; psRow.source = 'weekly';
-        _weeklyParams[pid] = wpRow;
-        _poolStateParams[pid] = psRow;
-      }
-
-      if (ca || tds) calc(pid);
-    });
-
-    checkDiscrepancies();
-
-
-    if (btn) { btn.textContent = 'Saved ✓'; }
-    if (status) status.textContent = `Saved at ${now}`;
-    setTimeout(() => {
-      if (btn) { btn.textContent = 'Save CH & TDS to Sheet'; btn.disabled = false; }
-    }, 3000);
+    applyWeeklySaveSuccess();
   } catch(e) {
+    // Safari throws on Google Apps Script POST redirects even when the
+    // save actually succeeded. Verify by re-fetching before showing error.
+    try {
+      const check = await fetch(SCRIPT_URL + '?action=getWeeklyParams');
+      const cdata = await check.json();
+      const first = entries[0];
+      if (cdata.success && cdata.params && first &&
+          String((cdata.params[first.pool_id] || {}).calcium) === String(first.calcium)) {
+        applyWeeklySaveSuccess();
+        return;
+      }
+    } catch(e2) {}
     if (btn) { btn.textContent = 'Error — try again'; btn.disabled = false; }
     if (status) status.textContent = 'Save failed.';
   }
