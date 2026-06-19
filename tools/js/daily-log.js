@@ -107,6 +107,20 @@ async function savePool(poolId) {
       console.error('Save failed:', json.error);
     }
   } catch(e) {
+    // Safari throws on GAS POST redirects even when the save succeeded.
+    // Verify by checking today's status before showing error.
+    try {
+      const check = await fetch(SCRIPT_URL + '?action=getTodayStatus');
+      const cdata = await check.json();
+      if (cdata.success && cdata.saved && cdata.saved[poolId]) {
+        if (btn) { btn.textContent = 'Saved ✓'; btn.className = 'save-btn saved'; }
+        markPoolSaved(poolId);
+        setTimeout(() => {
+          if (btn) { btn.textContent = 'Save to Sheet'; btn.className = 'save-btn'; btn.disabled = false; }
+        }, 3000);
+        return;
+      }
+    } catch(e2) {}
     if (btn) { btn.textContent = 'Error — try again'; btn.className = 'save-btn error'; btn.disabled = false; }
     console.error('Save error:', e);
   }
