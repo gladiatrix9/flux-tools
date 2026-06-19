@@ -1,193 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flux Water Log</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --navy:       #004a79;
-      --salmon:     #ea9d87;
-      --light-blue: #c0dcf5;
-      --blush:      #fbdcd2;
-      --green:      #006b5b;
-      --sand:       #f5ede6;
-      --cream:      #faf7f3;
-      --text:       #1a2331;
-      --muted:      #6b7a8d;
-      --border:     #ddd6cc;
-      --alert:      #c0282e;
-      --alert-bg:   #fdecea;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--sand);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      background: var(--navy);
-      padding: 1.5rem 2rem 1.5rem;
-    }
-    .header-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .logo-word {
-      font-family: 'DM Mono', monospace;
-      font-size: 1.5rem;
-      letter-spacing: 0.12em;
-      color: var(--light-blue);
-      line-height: 1;
-    }
-    .logo-sub {
-      font-size: 0.62rem;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--salmon);
-      margin-top: 3px;
-    }
-    .header-title {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.8);
-      letter-spacing: 0.04em;
-      text-align: right;
-      line-height: 1.6;
-    }
-    .header-title span {
-      display: block;
-      font-size: 0.6rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.35);
-      margin-top: 2px;
-    }
-
-    .login-wrap {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 1rem;
-    }
-    .login-card {
-      background: white;
-      border-radius: 12px;
-      padding: 2.5rem 2rem;
-      width: 100%;
-      max-width: 360px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    }
-    .login-title {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.75rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 1.5rem;
-    }
-    .login-field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 1.25rem;
-    }
-    .login-field label {
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--text);
-      letter-spacing: 0.02em;
-    }
-    .login-field input {
-      padding: 0.75rem 1rem;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 1rem;
-      color: var(--text);
-      background: var(--cream);
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .login-field input:focus {
-      border-color: var(--navy);
-    }
-    .login-btn {
-      width: 100%;
-      padding: 0.85rem;
-      background: var(--navy);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-      margin-top: 0.25rem;
-    }
-    .login-btn:hover { background: #003a60; }
-    .login-error {
-      display: none;
-      margin-top: 1rem;
-      padding: 0.75rem 1rem;
-      background: var(--alert-bg);
-      border-radius: 8px;
-      font-size: 0.85rem;
-      color: var(--alert);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flux · Staff Access</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:       #004a79;
+    --salmon:     #ea9d87;
+    --light-blue: #c0dcf5;
+    --blush:      #fbdcd2;
+    --green:      #006b5b;
+    --sand:       #f5ede6;
+    --text:       #1a2331;
+    --muted:      #8a9aab;
+    --border:     rgba(255,255,255,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  /* ─── BACKGROUND LAYERS ─── */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(192,220,245,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(192,220,245,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+  .bg-glow {
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    animation: drift 12s ease-in-out infinite alternate;
+  }
+  .bg-glow-hot {
+    background: radial-gradient(circle, rgba(234,157,135,0.18) 0%, transparent 70%);
+    top: -100px;
+    right: -100px;
+    animation-delay: 0s;
+  }
+  .bg-glow-cold {
+    background: radial-gradient(circle, rgba(192,220,245,0.14) 0%, transparent 70%);
+    bottom: -100px;
+    left: -100px;
+    animation-delay: -6s;
+  }
+  @keyframes drift {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(30px, -20px) scale(1.08); }
+  }
+  /* ─── CARD ─── */
+  .card {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 420px;
+    margin: 1.5rem;
+    animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  /* ─── HEADER BLOCK ─── */
+  .card-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  .flux-logo {
+    width: 180px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  .wordmark-bar {
+    display: block;
+    width: 32px;
+    height: 2px;
+    background: var(--salmon);
+    margin: 1rem auto 0.7rem;
+    border-radius: 2px;
+  }
+  .card-subtitle {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  /* ─── FORM PANEL ─── */
+  .form-panel {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    backdrop-filter: blur(12px);
+  }
+  .form-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    display: block;
+    margin-bottom: 0.55rem;
+  }
+  .input-wrap {
+    position: relative;
+  }
+  .input-wrap svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.35;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .password-input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 0.85rem 1rem 0.85rem 2.75rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    color: white;
+    letter-spacing: 0.15em;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    -webkit-text-security: disc;
+    text-security: disc;
+  }
+  .password-input[type="password"] {
+    letter-spacing: 0.2em;
+  }
+  .password-input::placeholder {
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.1em;
+    font-size: 0.85rem;
+  }
+  .password-input:focus {
+    border-color: var(--light-blue);
+    background: rgba(255,255,255,0.09);
+  }
+  .input-wrap:focus-within svg {
+    opacity: 0.6;
+  }
+  /* ─── ERROR STATE ─── */
+  .password-input.error {
+    border-color: var(--salmon);
+    animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-6px); }
+    40%       { transform: translateX(6px); }
+    60%       { transform: translateX(-4px); }
+    80%       { transform: translateX(4px); }
+  }
+  .error-msg {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: var(--salmon);
+    margin-top: 0.5rem;
+    min-height: 1em;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .error-msg.visible { opacity: 1; }
+  /* ─── SUBMIT BUTTON ─── */
+  .submit-btn {
+    width: 100%;
+    margin-top: 1.5rem;
+    background: white;
+    color: var(--navy);
+    border: none;
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .submit-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
+    transform: translateX(-100%);
+    transition: transform 0.4s;
+  }
+  .submit-btn:hover::after { transform: translateX(100%); }
+  .submit-btn:hover { opacity: 0.92; }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn.loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  /* ─── FOOTER ─── */
+  .card-footer {
+    text-align: center;
+    margin-top: 1.75rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.2);
+  }
+  /* ─── SUCCESS STATE ─── */
+  .card.success .form-panel {
+    border-color: rgba(192,220,245,0.3);
+  }
+  .success-msg {
+    display: none;
+    text-align: center;
+    padding: 1rem 0 0.5rem;
+    animation: rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .success-msg .check {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .success-msg p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--light-blue);
+  }
+  /* temperature accent lines — decorative */
+  .temp-lines {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .temp-line {
+    position: absolute;
+    height: 1px;
+    opacity: 0.06;
+  }
+  .temp-line-hot {
+    background: linear-gradient(90deg, transparent, var(--salmon), transparent);
+    width: 60%;
+    top: 35%;
+    left: -10%;
+    animation: slide-right 8s ease-in-out infinite alternate;
+  }
+  .temp-line-cold {
+    background: linear-gradient(90deg, transparent, var(--light-blue), transparent);
+    width: 50%;
+    bottom: 40%;
+    right: -10%;
+    animation: slide-left 10s ease-in-out infinite alternate;
+  }
+  @keyframes slide-right {
+    from { transform: translateX(0); }
+    to   { transform: translateX(80px); }
+  }
+  @keyframes slide-left {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-60px); }
+  }
+</style>
 </head>
 <body>
-  <header>
-    <div class="header-top">
-      <div>
-        <div class="logo-word">FLUX</div>
-        <div class="logo-sub">Water Systems</div>
+<div class="bg-grid"></div>
+<div class="bg-glow bg-glow-hot"></div>
+<div class="bg-glow bg-glow-cold"></div>
+<div class="temp-lines">
+  <div class="temp-line temp-line-hot"></div>
+  <div class="temp-line temp-line-cold"></div>
+</div>
+<div class="card" id="card">
+  <div class="card-header">
+    <svg class="flux-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 205.7131 106.2504"><g><g><path d="M3.4258,96.1928H0v-2.1777h9.4844v2.1777h-3.4258v9.8555h-2.6328v-9.8555Z" style="fill:#ea9d87;"/><path d="M15.5381,94.0151h2.6157v4.7598h4.3711v-4.7598h2.6323v12.0332h-2.6323v-4.9785h-4.3711v4.9785h-2.6157v-12.0332Z" style="fill:#ea9d87;"/><path d="M32.0371,94.0151h8.6069v2.2109h-5.9912v2.6162h5.1812v2.2109h-5.1812v2.7842h6.0415v2.2109h-8.6572v-12.0332Z" style="fill:#ea9d87;"/><path d="M47.0161,94.0151h5.0122c2.4976,0,4.1851,1.4346,4.1851,3.7979,0,1.4346-.7422,2.9023-2.3286,3.5098l2.8857,4.7256h-2.8857l-2.5991-4.3711h-1.6538v4.3711h-2.6157v-12.0332ZM51.6909,99.602c1.1978,0,1.9575-.625,1.9575-1.7217,0-1.2324-.8101-1.7383-1.9746-1.7383h-2.042v3.46h2.0591Z" style="fill:#ea9d87;"/><path d="M62.8574,94.0151h3.2402l2.7676,6.8691h.0337l2.7002-6.8691h3.2236v12.0332h-2.481v-7.8477h-.0337l-2.498,6.3457h-1.9404l-2.5146-6.3115h-.0337v7.8135h-2.4639v-12.0332Z" style="fill:#ea9d87;"/><path d="M84.8569,93.9985h2.6499l4.3203,12.0498h-2.7339l-.8105-2.4131h-4.438l-.8271,2.4131h-2.5312l4.3706-12.0498ZM87.6079,101.5082l-1.519-4.6064h-.0337l-1.5356,4.6064h3.0884Z" style="fill:#ea9d87;"/><path d="M97.5762,94.0151h2.6157v9.8223h5.7886v2.2109h-8.4043v-12.0332Z" style="fill:#ea9d87;"/><path d="M120.3174,94.0151h2.6157v9.8223h5.7886v2.2109h-8.4043v-12.0332Z" style="fill:#ea9d87;"/><path d="M133.3076,101.9643v-3.6455c0-2.9531,2.4468-4.5059,4.9277-4.5059,2.6494,0,5.0288,1.5693,5.0288,4.4551v3.4766c0,3.0039-2.4976,4.5059-4.9443,4.5059-2.6499,0-5.0122-1.3838-5.0122-4.2861ZM140.6484,101.8627v-3.7129c0-1.3496-1.1304-2.1094-2.3965-2.1094-1.1138,0-2.3286.5908-2.3286,2.1602v3.6797c0,1.3662,1.0801,2.1426,2.3965,2.1426,1.0967,0,2.3286-.624,2.3286-2.1602Z" style="fill:#ea9d87;"/><path d="M148.71,101.8461v-7.8311h2.6328v7.5947c0,1.418.7085,2.3799,2.2612,2.3799,1.4512,0,2.2275-.8105,2.2275-2.3799v-7.5947h2.5991v7.6787c0,2.9365-2.0591,4.5566-4.8774,4.5566-2.9194,0-4.8433-1.4512-4.8433-4.4043Z" style="fill:#ea9d87;"/><path d="M164.7539,94.0151h2.5483l4.894,7.4932h.0337v-7.4932h2.481v12.0332h-2.498l-4.9614-7.6445h-.0337v7.6445h-2.4639v-12.0332Z" style="fill:#ea9d87;"/><path d="M180.9155,101.9985v-3.7471c0-2.9023,2.2783-4.4385,4.9277-4.4385,2.312,0,4.7588,1.1143,4.7588,3.8477v.4053h-2.4805v-.1855c0-1.418-1.2153-1.873-2.2275-1.873-1.1143,0-2.3628.5908-2.3628,2.126v3.7803c0,1.333,1.0801,2.127,2.3965,2.127,1.1982,0,2.1768-.5576,2.1768-1.958v-.3037h-2.7676v-2.127h5.2651v2.6328c0,2.7344-2.3623,3.9658-4.6914,3.9658-2.6328,0-4.9951-1.4004-4.9951-4.252Z" style="fill:#ea9d87;"/><path d="M196.7065,94.0151h8.6069v2.2109h-5.9912v2.6162h5.1812v2.2109h-5.1812v2.7842h6.0415v2.2109h-8.6572v-12.0332Z" style="fill:#ea9d87;"/><path d="M9.5005,81.521c-1.7451,0-4.0287-.1485-6.8506-.4456-.7797-.0743-1.411-.3249-1.8937-.7519s-.724-1.0118-.724-1.7544C.1808,48.3821.8306,22.7466,1.9816,2.8818c.1114-1.3738.9998-2.0123,2.6177-2.2835,2.6499-.4442,9.5497-.5983,21.6542-.5983,10.2109,0,15.9109.2026,19.9556.5983,1.5192.1486,2.3949.9097,2.6177,2.3949.3342,3.0447.5941,8.9113.7797,17.5998.0371,1.4852-.427,2.3763-1.3924,2.6734s-1.8194-.1857-2.562-1.4481c-3.4531-5.978-9.0093-8.967-18.329-8.967-3.9358,0-7.1476.7612-9.6353,2.2835-2.4877,1.5223-3.7316,3.7873-3.7316,6.7949v1.3924c0,2.562.9468,4.6692,2.8405,6.3215,1.8937,1.6523,3.5788,2.3147,6.8794,2.4785,5.2428.2602,9.8491-.3463,14.4213-1.0551.8444-.1601,2.6948.0712,3.2332.5538s.951.9575,1.2771,2.167c.4539,1.6835.8142,6.8477-.3663,8.7472-1.5972,2.5701-8.6668.209-11.0676-.0548-2.7662-.3039-5.0422-.1033-7.7762.224-6.931.8298-9.5528,4.3443-9.5528,13.0328,0,2.859.2228,6.3277.6683,9.1867.4456,2.859.9747,5.5788,1.5873,8.1594.6127,2.5806.9932,4.335,1.1418,5.2632.2228,1.5595-.4827,2.4692-2.1164,2.7291-1.6337.297-3.5088.4456-5.6253.4456Z" style="fill:#ea9d87;"/><path d="M152.3765,81.4119c-1.789,0-4.1318-.1445-5.9199-.4326-.683-.1436-1.236-.4863-1.6586-1.0273-.423-.54-.6341-1.1523-.6341-1.8379,0-4.8281,2.0001-10.2334,6.0003-16.2158,4.0002-5.9824,8.4552-9.9824,13.3662-12.001.6173-.2158.9267-.5488.9267-1,0-.4502-.3093-.8193-.9267-1.1074-4.6832-1.9814-8.683-5.3691-12.0002-10.1631-3.3172-4.792-4.9758-9.459-4.9758-14,0-1.585.7636-2.54,2.2927-2.8652,1.333-.2881,3.822-.4316,6.3588-.4316,2.5685,0,5.0741.1436,6.408.4316,1.3982.2891,2.2112,1.1357,2.4394,2.541,1.168,5.6829,2.3817,10.3066,4.7074,14.1621,2.3244,3.8564,3.9896,5.7842,6.1042,5.7842,2.1464,0,3.9169-2.0088,6.4215-6.0273,2.5038-4.0176,3.6322-8.7431,4.5365-14.1348.0978-.6846.3005-1.207.6099-1.5684.3089-.3594.8051-.6123,1.4876-.7568,1.3334-.2881,3.9038-.4316,6.6036-.4316,2.6016,0,5.123.1436,6.4569.4316.7804.1445,1.3735.4873,1.7807,1.0273.4063.541.5768,1.1543.512,1.8379-.0326,4.4326-1.7154,8.9824-5.049,13.6494-3.3339,4.667-7.3095,8.2432-11.927,10.7295-.5852.2891-.8782.6406-.8782,1.0537,0,.415.293.7666.8782,1.0547,3.3172,1.5498,5.9412,3.9551,8.9826,7.2158,3.0405,3.2617,6.0013,6.7754,7.774,10.541,1.7723,3.7666,2.6589,7.1807,2.6589,10.2432,0,.6855-.212,1.2979-.6345,1.8379-.423.541-.9923.8838-1.7071,1.0273-1.3338.2881-3.122.4326-5.3662.4326-2.7972,0-6.1987-.1445-7.9869-.4326-1.5291-.3242-2.439-1.207-2.732-2.6484-1.1608-3.7165-1.7644-7.4063-3.3414-11.082-1.578-3.6748-2.698-6.6211-4.4703-8.8379-1.7727-2.2158-3.3093-3.3242-4.6096-3.3242-1.2686,0-2.8052,1.127-4.6101,3.3789-1.8049,2.252-2.9501,5.2158-4.543,8.8916-1.5938,3.6758-2.1084,7.2144-3.1709,10.9736-.4,1.4154-1.7093,2.3242-3.1401,2.6484-1.7886.2881-4.1302.4326-7.0244.4326Z" style="fill:#ea9d87;"/><path d="M63.2137,81.6299c-2.8366,0-5.0437-.1428-6.6224-.4306-1.6149-.3581-2.3551-1.3823-2.4235-3.0683-1.3347-32.9658-.2959-58.3737,1.7776-74.3029.2153-1.6147,1.1304-2.5487,2.7453-2.7991,1.3996-.2879,3.2837-.4306,5.6534-.4306,3.1573,0,5.4381.1428,6.8377.4306.7887.1077,1.4172.4658,1.8841,1.0766.4658.6109.646,1.327.5383,2.1532-1.1843,9.5468-2.7193,19.4025-3.0961,33.67-.1759,6.6615-.2356,14.1702,1.2325,22.5315,1.2695,7.2304,4.2805,13.5773,4.8684,15.194.7587,2.0576.3047,5.2091-4.1911,5.6525-1.7993.1775-6.8719.323-9.2042.323Z" style="fill:#ea9d87;"/><path d="M140.1654,62.033c0,4.7393-.0186,10.1357-.0542,16.1895,0,1.6221-.7388,2.6133-2.2163,2.9736-1.4053.2881-3.2432.4326-5.5137.4326-1.4053,0-3.5132-.1445-6.3242-.4326-.793-.1807-1.4146-.541-1.8647-1.0811-.4512-.541-.4998-1.195-.4595-2,.0704-1.4065.3219-2.6094.3219-4.9883,0-1.2246-.2349-1.8828-.7026-1.9727-.4688-.0898-1.0093.3877-1.6216,1.4326-2.3433,3.459-5.0343,5.4024-8.0792,6.9874-3.0454,1.5859-6.992,2.3789-11.1004,2.3789-4.543,0-9.605-.8799-13.4925-3.6076-7.2177-5.0644-10.5066-13.3589-10.5066-24.866,0-9.9907,2.0782-17.3903,6.9392-32.2259.357-1.3696,1.8147-2.1415,3.2689-2.2597,1.1853-.0906,5.6271-.0123,8.026.2521,2.5466.2807,3.0844.352,4.1977.7689.8848.3314,2.1857.8988,2.5832,2.9045.2562,2.4064-1.4914,7.3501-3.162,12.2867-2.2594,6.6766-3.7844,8.6365-4.6292,16.2333-1.3284,11.9456,4.6881,16.4386,13.0532,16.4386,7.9088,0,14.5299-4.19,13.025-16.1278-1.3885-11.0151-4.4221-15.4212-7.5813-27.6564-.5931-2.235,1.62-3.1732,2.4809-3.4824.6713-.2411,2.205-.6886,2.8335-.8142,1.3296-.3273,1.9607-.2778,4.4356-.53,4.7886-.488,7.0934.4192,8.386,2.5657,1.6994,4.6376,7.7569,21.3751,7.7569,40.2002Z" style="fill:#ea9d87;"/></g></g></svg>
+    <span class="wordmark-bar"></span>
+    <span class="card-subtitle">Staff Portal · Water Testing</span>
+  </div>
+  <div class="form-panel">
+    <div id="form-area">
+      <label class="form-label" for="pw">Access Code</label>
+      <div class="input-wrap">
+        <input
+          class="password-input"
+          type="password"
+          id="pw"
+          placeholder="Enter access code"
+          autocomplete="current-password"
+          autofocus
+          onkeydown="if(event.key==='Enter') submit()"
+        >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
       </div>
-      <div class="header-title">
-        Pool Water Log
-        <span>Daily Testing & Chemistry</span>
-      </div>
+      <div class="error-msg" id="error-msg">Incorrect access code — try again</div>
+      <button class="submit-btn" id="submit-btn" onclick="submit()">Enter</button>
     </div>
-  </header>
-
-  <div class="login-wrap">
-    <div class="login-card">
-      <div class="login-title">Staff Access</div>
-      <div class="login-field">
-        <label for="pw-input">Passcode</label>
-        <input type="password" id="pw-input" placeholder="Enter passcode" autocomplete="current-password">
-      </div>
-      <button class="login-btn" onclick="tryLogin()">Enter</button>
-      <div class="login-error" id="login-error">Incorrect passcode — try again.</div>
+    <div class="success-msg" id="success-msg">
+      <span class="check">✓</span>
+      <p>Access granted — opening tool</p>
     </div>
   </div>
-
-  <script>
-    document.getElementById('pw-input').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') tryLogin();
-    });
-
-    function tryLogin() {
-      const val = document.getElementById('pw-input').value.trim();
-      if (val === '145145') {
+  <div class="card-footer">
+    Flux Thermal Lounge · Bend, OR · Staff Only
+  </div>
+</div>
+<script>
+  const ACCESS_CODE = '145145';
+  const TOOL_URL = 'log.html';
+  function submit() {
+    const input = document.getElementById('pw');
+    const btn   = document.getElementById('submit-btn');
+    const err   = document.getElementById('error-msg');
+    btn.classList.add('loading');
+    btn.textContent = 'Checking…';
+    setTimeout(() => {
+      if (input.value === ACCESS_CODE) {
         sessionStorage.setItem('flux-auth', 'ok');
-        window.location.replace('log.html');
+        err.classList.remove('visible');
+        document.getElementById('form-area').style.display = 'none';
+        document.getElementById('success-msg').style.display = 'block';
+        document.getElementById('card').classList.add('success');
+        setTimeout(() => { window.location.href = TOOL_URL; }, 900);
       } else {
-        document.getElementById('login-error').style.display = 'block';
-        document.getElementById('pw-input').value = '';
-        document.getElementById('pw-input').focus();
+        input.classList.add('error');
+        err.classList.add('visible');
+        btn.classList.remove('loading');
+        btn.textContent = 'Enter';
+        input.value = '';
+        input.focus();
+        setTimeout(() => input.classList.remove('error'), 400);
       }
-    }
-  </script>
+    }, 300);
+  }
+</script>
 </body>
 </html>
