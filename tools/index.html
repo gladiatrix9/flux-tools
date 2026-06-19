@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flux Water Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy:       #004a79;
+      --salmon:     #ea9d87;
+      --light-blue: #c0dcf5;
+      --blush:      #fbdcd2;
+      --green:      #006b5b;
+      --sand:       #f5ede6;
+      --cream:      #faf7f3;
+      --text:       #1a2331;
+      --muted:      #6b7a8d;
+      --border:     #ddd6cc;
+      --alert:      #c0282e;
+      --alert-bg:   #fdecea;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--sand);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: var(--navy);
+      padding: 1.5rem 2rem 1.5rem;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo-word {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.5rem;
+      letter-spacing: 0.12em;
+      color: var(--light-blue);
+      line-height: 1;
+    }
+    .logo-sub {
+      font-size: 0.62rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--salmon);
+      margin-top: 3px;
+    }
+    .header-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.8);
+      letter-spacing: 0.04em;
+      text-align: right;
+      line-height: 1.6;
+    }
+    .header-title span {
+      display: block;
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin-top: 2px;
+    }
+
+    .login-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .login-card {
+      background: white;
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .login-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+    .login-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .login-field label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+    .login-field input {
+      padding: 0.75rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      color: var(--text);
+      background: var(--cream);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .login-field input:focus {
+      border-color: var(--navy);
+    }
+    .login-btn {
+      width: 100%;
+      padding: 0.85rem;
+      background: var(--navy);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 0.25rem;
+    }
+    .login-btn:hover { background: #003a60; }
+    .login-error {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--alert-bg);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--alert);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-top">
+      <div>
+        <div class="logo-word">FLUX</div>
+        <div class="logo-sub">Water Systems</div>
+      </div>
+      <div class="header-title">
+        Pool Water Log
+        <span>Daily Testing & Chemistry</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-title">Staff Access</div>
+      <div class="login-field">
+        <label for="pw-input">Passcode</label>
+        <input type="password" id="pw-input" placeholder="Enter passcode" autocomplete="current-password">
+      </div>
+      <button class="login-btn" onclick="tryLogin()">Enter</button>
+      <div class="login-error" id="login-error">Incorrect passcode — try again.</div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('pw-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') tryLogin();
+    });
+
+    function tryLogin() {
+      const val = document.getElementById('pw-input').value.trim();
+      if (val === '145145') {
+        sessionStorage.setItem('flux-auth', 'ok');
+        window.location.replace('log.html');
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+        document.getElementById('pw-input').value = '';
+        document.getElementById('pw-input').focus();
+      }
+    }
+  </script>
+</body>
+</html>
