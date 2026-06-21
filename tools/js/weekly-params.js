@@ -277,3 +277,4 @@ function wizJumpTo(pid, stepIndex) {
   st.step = stepIndex;
   wizRender(pid);
   wizSaveLocal(pid);
+}
