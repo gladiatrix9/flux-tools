@@ -36,7 +36,14 @@ async function fetchPoolState() {
       if (row.calcium && cHid) cHid.value = row.calcium;
       if (row.tds     && tHid) tHid.value = row.tds;
       if (row.updated && upd)  upd.textContent = row.updated;
-      if (row.calcium || row.tds) calc(pid);
+      if (row.calcium || row.tds) {
+        calc(pid);
+        // If the wizard already rendered the review before pool state
+        // arrived (race condition on resume), refresh the review so the
+        // CH/TDS rows show the loaded values instead of "—".
+        const st = (typeof _wizState !== 'undefined') && _wizState[pid];
+        if (st && st.step >= WIZ_STEPS.length) wizRenderReview(pid);
+      }
     });
 
     checkDiscrepancies();
