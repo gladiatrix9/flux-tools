@@ -2,15 +2,6 @@
 const SHEET_URL = SCRIPT_URL; // reuse same Apps Script
 const POOLS_LIST = ['sl-hot','sl-cold','eq-hot','eq-cold','so-hot','so-cold'];
 
-// Show Tuesday banner if today is Tuesday
-(function() {
-  const day = new Date().getDay(); // 0=Sun, 2=Tue
-  if (day === 2) {
-    const banner = document.getElementById('tuesday-banner');
-    if (banner) banner.style.display = 'flex';
-  }
-})();
-
 // Cache of the last fetch from each sheet, used for discrepancy checks
 let _poolStateParams = null;
 let _weeklyParams    = null;
@@ -36,7 +27,14 @@ async function fetchPoolState() {
       if (row.calcium && cHid) cHid.value = row.calcium;
       if (row.tds     && tHid) tHid.value = row.tds;
       if (row.updated && upd)  upd.textContent = row.updated;
-      if (row.calcium || row.tds) calc(pid);
+      if (row.calcium || row.tds) {
+        calc(pid);
+        // If the wizard already rendered the review before pool state
+        // arrived (race condition on resume), refresh the review so the
+        // CH/TDS rows show the loaded values instead of "—".
+        const st = (typeof _wizState !== 'undefined') && _wizState[pid];
+        if (st && st.step >= WIZ_STEPS.length) wizRenderReview(pid);
+      }
     });
 
     checkDiscrepancies();
@@ -79,6 +77,7 @@ async function fetchWeeklyParams() {
     });
 
     checkDiscrepancies();
+    applyTuesdayUI();
   } catch(e) {
     console.log('Could not fetch weekly params:', e);
   }
@@ -116,6 +115,47 @@ function checkDiscrepancies() {
 }
 
 
+// ─── WEEKLY PARAMS STALENESS WARNING ─────────────────────────
+// Set to true after a successful weeklyParamsSave so applyTuesdayUI()
+// immediately hides the banner without needing to re-parse the
+// locally-cached timestamp (which uses a display-only format).
+let _weeklyParamsSavedThisSession = false;
+
+// Returns true if weekly params were updated since last week
+// (i.e. on or after last Monday), meaning Lucid's numbers are current.
+function areWeeklyParamsFresh() {
+  if (_weeklyParamsSavedThisSession) return true;
+  if (!_weeklyParams) return true; // still loading — don't flash warning yet
+  const now      = new Date();
+  const daysBack = now.getDay() === 0 ? 6 : now.getDay() - 1;
+  const lastMon  = new Date(now);
+  lastMon.setDate(now.getDate() - daysBack);
+  lastMon.setHours(0, 0, 0, 0);
+  // Fresh if at least one pool was updated since last week
+  return POOLS_LIST.some(function(pid) {
+    const row = _weeklyParams[pid];
+    if (!row || !row.updated) return false;
+    const d = new Date(row.updated);
+    return !isNaN(d.getTime()) && d >= lastMon;
+  });
+}
+
+// Shows the weekly params banner and pool-card highlights any day of the
+// week when the params haven't been updated since last week. Clears as
+// soon as Lucid's numbers are saved. Called after fetchWeeklyParams()
+// loads and after a successful weekly save.
+function applyTuesdayUI() {
+  const warn   = !areWeeklyParamsFresh();
+  const banner = document.getElementById('tuesday-banner');
+  if (banner) banner.style.display = warn ? 'flex' : 'none';
+  POOLS_LIST.forEach(function(pid) {
+    const card = document.getElementById('card-'+pid);
+    if (!card) return;
+    card.style.outline       = warn ? '2px solid var(--warn)' : '';
+    card.style.outlineOffset = warn ? '2px' : '';
+  });
+}
+
 // Format any date string to "Wed May 28" — strip time and timezone
 function fmtDay(str) {
   if (!str) return '';
@@ -142,20 +182,6 @@ fetchPoolState();
 fetchWeeklyParams();
 fetchTodayStatus();
 updateSummaryStatus();
-
-
-// On Tuesdays: highlight pool cards to signal CH/TDS required
-(function() {
-  if (new Date().getDay() !== 2) return;
-  const pools = ['sl-hot','sl-cold','eq-hot','eq-cold','so-hot','so-cold'];
-  pools.forEach(function(pid) {
-    const card = document.getElementById('card-'+pid);
-    if (card) {
-      card.style.outline = '2px solid var(--warn)';
-      card.style.outlineOffset = '2px';
-    }
-  });
-})();
 
 
 // ══════ WEEKLY PER-POOL CH/TDS ══════════════════════════════
@@ -227,6 +253,8 @@ async function weeklyParamsSave() {
       if (ca || tds) calc(pid);
     });
     checkDiscrepancies();
+    _weeklyParamsSavedThisSession = true;
+    applyTuesdayUI();
     if (btn) { btn.textContent = 'Saved ✓'; }
     if (status) status.textContent = `Saved at ${now}`;
     setTimeout(() => {
@@ -270,3 +298,4 @@ function wizJumpTo(pid, stepIndex) {
   st.step = stepIndex;
   wizRender(pid);
   wizSaveLocal(pid);
+}

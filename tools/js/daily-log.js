@@ -12,23 +12,6 @@ async function savePool(poolId) {
     }, 4000);
     return;
   }
-  // On Tuesdays: CH and TDS are required (Lucid visited Monday)
-  if (new Date().getDay() === 2) {
-    const caEl  = document.getElementById(poolId+'-calcium');
-    const tdsEl = document.getElementById(poolId+'-tds');
-    const missing = (!caEl || !caEl.value) || (!tdsEl || !tdsEl.value);
-    if (missing) {
-      // Flash the pool card border
-      const card = document.getElementById('card-'+poolId);
-      if (card) {
-        card.style.outline = '2px solid var(--alert)';
-        card.style.outlineOffset = '2px';
-        setTimeout(function() { card.style.outline = ''; card.style.outlineOffset = ''; }, 4000);
-        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-      return;
-    }
-  }
   const pool = POOLS[poolId];
   const g = id => document.getElementById(id)?.value || '';
 
