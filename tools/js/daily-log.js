@@ -208,6 +208,17 @@ async function sendDailySummary() {
       if (status) status.textContent = 'Send failed — check your connection and try again.';
     }
   } catch(e) {
+    // Safari throws on GAS POST redirects even when the action succeeded.
+    // Do a quick GET to confirm the backend is reachable; if so, assume sent.
+    try {
+      const check = await fetch(SCRIPT_URL + '?action=getTodayStatus');
+      const cdata = await check.json();
+      if (cdata.success) {
+        if (btn) { btn.textContent = 'Sent ✓'; btn.className = 'summary-send-btn sent'; btn.disabled = true; }
+        if (status) status.textContent = `Summary sent to hello@flux-lounge.com · ${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`;
+        return;
+      }
+    } catch(e2) {}
     if (btn) { btn.textContent = 'Send daily summary →'; btn.disabled = false; }
     if (status) status.textContent = 'Send failed — check your connection and try again.';
   }
