@@ -296,7 +296,7 @@ function updateOverall(poolId, statuses, actions, lsi) {
     if (actions.length) {
       actionsEl.style.display = 'flex';
       actionsEl.innerHTML = actions.map(a =>
-        `<div class="action-item ${a.st}"><span class="action-param">${a.label}:</span>${a.msg}</div>`
+        `<div class="action-item ${a.st}"><span class="action-param">${a.label}:</span><span>${a.msg}</span></div>`
       ).join('');
     } else {
       actionsEl.style.display = 'none';
