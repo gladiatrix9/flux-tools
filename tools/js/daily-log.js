@@ -95,7 +95,7 @@ async function savePool(poolId) {
     try {
       const check = await fetch(SCRIPT_URL + '?action=getTodayStatus');
       const cdata = await check.json();
-      if (cdata.success && cdata.saved && cdata.saved[poolId]) {
+      if (cdata.success && cdata.status && cdata.status[poolId] && cdata.status[poolId].saved) {
         if (btn) { btn.textContent = 'Saved ✓'; btn.className = 'save-btn saved'; }
         markPoolSaved(poolId);
         setTimeout(() => {
