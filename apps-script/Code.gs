@@ -18,6 +18,15 @@
 const SPREADSHEET_ID = '1gWzJGFsXRmOqy2qn7VBKR4PYAmmszNK0sT42EtAOshE';
 const SUMMARY_EMAIL  = 'hello@flux-lounge.com';
 
+// Free-text fields (e.g. "action taken") are typed by staff and can start
+// with =, +, -, or @ — Sheets treats any of those as the start of a
+// formula and throws "Formula parse error" instead of storing the text.
+// A leading apostrophe forces the cell to be stored as plain text.
+function asPlainText(v) {
+  if (typeof v === 'string' && /^[=+\-@]/.test(v)) return "'" + v;
+  return v;
+}
+
 // Bump this whenever Code.gs is redeployed — every JSON response includes
 // it, so the front end (and you, via the browser console) can confirm the
 // live deployment is actually running this version.
@@ -300,8 +309,8 @@ function saveDailyLog(data) {
   setCol(['tds (ppm)'],              data.tds                 || '');
   setCol(['lsi'],                    data.lsi                 || '');
   setCol(['pool status'],            data.status              || '');
-  setCol(['recommended action'],     data.recommended_action  || '');
-  setCol(['action taken'],           data.action_taken        || '');
+  setCol(['recommended action'],     asPlainText(data.recommended_action  || ''));
+  setCol(['action taken'],           asPlainText(data.action_taken        || ''));
   setCol(['pool id'],                data.pool_id             || '');
   setCol(['saved at'],               ts);
 
