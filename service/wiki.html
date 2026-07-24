@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flux · Alcohol Service &amp; ID Compliance</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css?v=2">
+<style>
+  /* ── local panel shades over navy ── */
+  :root { --navy-deep: #00395f; }
+
+  .wiki-hero { background: var(--navy); padding: 2rem 2rem 2.25rem; }
+  .wiki-inner { max-width: 1040px; margin: 0 auto; }
+
+  .wiki-hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.25rem; }
+  .wiki-eyebrow { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase; }
+  .c-cool { color: var(--light-blue); }
+  .c-green { color: var(--green); }
+  .c-salmon { color: var(--salmon); }
+  .wiki-h1 { font-size: 2.15rem; line-height: 1.12; font-weight: 600; color: #fff; margin: 0.4rem 0 0.75rem; max-width: 820px; letter-spacing: -0.01em; }
+  .wiki-lede { font-size: 0.95rem; line-height: 1.62; color: rgba(255,255,255,0.72); max-width: 640px; margin: 0; }
+  .wiki-hero-logo { height: 74px; width: auto; flex-shrink: 0; opacity: 0.95; }
+
+  .pill-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.4rem; }
+  .pill {
+    display: inline-flex; align-items: center; padding: 0.55rem 1.15rem;
+    border-radius: 20px; font-family: 'DM Mono', monospace; font-size: 0.7rem;
+    letter-spacing: 0.05em; cursor: pointer; transition: background 0.18s, color 0.18s;
+    background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.28);
+  }
+  .pill:hover { background: rgba(255,255,255,0.2); }
+  .pill.active { background: #fff; color: var(--navy); font-weight: 500; border-color: #fff; }
+
+  .stat-bar { display: flex; flex-wrap: wrap; margin-top: 1.5rem; background: var(--navy-deep); border-radius: 12px; overflow: hidden; }
+  .stat-cell { flex: 1; min-width: 180px; padding: 1rem 1.4rem; border-right: 1px solid rgba(255,255,255,0.14); }
+  .stat-cell:last-child { border-right: none; }
+  .stat-label { font-size: 0.72rem; line-height: 1.4; color: rgba(255,255,255,0.6); margin-bottom: 0.45rem; }
+  .stat-cell:first-child .stat-label { color: var(--sand); }
+  .stat-value { font-family: 'DM Mono', monospace; font-size: 1.85rem; font-weight: 500; color: #fff; line-height: 1; }
+  .stat-value.t-salmon { color: var(--salmon); }
+  .stat-value.t-cool { color: var(--light-blue); }
+
+  /* ── sections ── */
+  .wiki-section { padding: 2.5rem 2rem; }
+  .wiki-section.sand { background: var(--sand); }
+  .wiki-section.navy { background: var(--navy); }
+  .wiki-h2 { font-size: 1.5rem; font-weight: 600; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+  .wiki-h2.on-dark { color: #fff; }
+  .wiki-intro { font-size: 0.95rem; line-height: 1.65; color: var(--muted); max-width: 730px; margin: 0 0 2rem; }
+  .wiki-intro.on-dark { color: rgba(255,255,255,0.72); max-width: 760px; }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
+  .card-grid.two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .wiki-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .wiki-card.navy { background: var(--navy); color: #fff; border-color: transparent; }
+  .wiki-card.cool { background: #eef5fc; border-color: #cfe1f4; }
+  .card-eyebrow { font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.35rem; }
+  .wiki-card.navy .card-eyebrow { color: var(--light-blue); }
+  .card-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.7rem; }
+  .card-list { margin: 0; padding-left: 1.15rem; font-size: 0.82rem; line-height: 1.62; }
+  .card-list li { margin-bottom: 0.35rem; }
+  .card-body { font-size: 0.85rem; line-height: 1.6; }
+
+  .chip-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .chip { display: inline-flex; padding: 0.3rem 0.7rem; border-radius: 20px; background: rgba(0,74,121,0.06); border: 1px solid var(--border); font-size: 0.72rem; color: var(--text); line-height: 1.3; }
+  .chip-dark { display: inline-flex; padding: 0.3rem 0.7rem; border-radius: 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); font-size: 0.72rem; color: #fff; line-height: 1.3; }
+
+  /* memory aid */
+  .memory-aid { background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 1.6rem; margin-bottom: 1.5rem; }
+  .ucard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.15rem; }
+  .ucard-row { display: flex; gap: 0.75rem; }
+  .wiki-num { min-width: 26px; height: 26px; border-radius: 50%; background: var(--navy); color: #fff; font-family: 'DM Mono', monospace; font-size: 0.72rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .ucard-label { font-weight: 600; font-size: 0.82rem; }
+  .ucard-desc { font-size: 0.74rem; color: var(--muted); line-height: 1.5; margin-top: 2px; }
+
+  /* callouts */
+  .callout-warm { background: var(--blush); border-radius: 12px; padding: 1.1rem 1.4rem; font-size: 0.9rem; line-height: 1.6; }
+  .callout-warm .ca-title { font-weight: 600; margin-bottom: 3px; }
+
+  /* signs */
+  .sign-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.1rem; }
+  .sign-panel { background: var(--navy-deep); border-radius: 12px; padding: 1.4rem; }
+  .sign-panel .card-eyebrow { color: var(--light-blue); margin-bottom: 0.9rem; }
+
+  /* house policy */
+  .policy-list { display: flex; flex-direction: column; gap: 0.9rem; margin-bottom: 2.25rem; }
+  .policy-row { display: flex; gap: 1rem; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.35rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .policy-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 2px; }
+  .policy-desc { font-size: 0.84rem; color: var(--muted); line-height: 1.6; }
+  .practice-panel { background: rgba(0,74,121,0.05); border-radius: 12px; padding: 1.6rem; }
+  .practice-list { margin: 0; padding-left: 1.15rem; columns: 2; column-gap: 2rem; font-size: 0.84rem; line-height: 1.6; }
+  .practice-list li { margin-bottom: 0.5rem; break-inside: avoid; }
+
+  /* training */
+  .step-list { display: flex; flex-direction: column; gap: 0.9rem; }
+  .step-row { display: grid; grid-template-columns: 200px 1fr; gap: 1.5rem; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.3rem 1.4rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .step-when { font-weight: 600; font-size: 0.84rem; color: var(--green); }
+  .step-what { font-size: 0.84rem; line-height: 1.62; }
+
+  /* sources */
+  .source-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
+  .source-links a { color: rgba(255,255,255,0.7); font-size: 0.72rem; text-decoration: underline; }
+  .source-links a:hover { color: #fff; }
+  .source-note { font-size: 0.68rem; color: rgba(255,255,255,0.5); margin-top: 1.75rem; line-height: 1.55; }
+
+  @media (max-width: 680px) {
+    .wiki-hero, .wiki-section { padding-left: 1.1rem; padding-right: 1.1rem; }
+    .wiki-hero-top { flex-direction: column; }
+    .wiki-hero-logo { height: 56px; }
+    .wiki-h1 { font-size: 1.7rem; }
+    .practice-list { columns: 1; }
+    .step-row { grid-template-columns: 1fr; gap: 0.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <img class="logo-mark" src="assets/flux-logo.svg" alt="Flux Thermal Lounge">
+    </div>
+    <div class="header-title">
+      Alcohol Service
+      <span>Host Portal · ID Compliance</span>
+    </div>
+  </div>
+  <div class="tabs">
+    <a class="tab-btn active" href="wiki.html">Guide</a>
+    <a class="tab-btn" href="incident.html">Incident Report</a>
+    <a class="tab-btn cross" href="../tools/log.html">Water Testing</a>
+  </div>
+</header>
+
+<!-- ══════ HERO ══════ -->
+<section class="wiki-hero">
+  <div class="wiki-inner">
+    <div class="wiki-eyebrow c-cool">STAFF RESOURCE</div>
+    <h1 class="wiki-h1">Alcohol service &amp; ID compliance</h1>
+    <p class="wiki-lede">What every host at Flux needs to know to check ID, recognize intoxication, and keep our OLCC license in good standing. Read this before you serve drinks at Flux.</p>
+
+    <div class="pill-row">
+      <button class="pill active" data-tab="training">Training</button>
+      <button class="pill" data-tab="checkingId">Checking ID</button>
+      <button class="pill" data-tab="acceptable">Acceptable ID</button>
+      <button class="pill" data-tab="goodFaith">Good faith effort</button>
+      <button class="pill" data-tab="signs">Signs of intoxication</button>
+      <button class="pill" data-tab="housePolicy">House policy</button>
+    </div>
+
+    <div class="stat-bar">
+      <div class="stat-cell">
+        <div class="stat-label">Check ID if a guest looks under</div>
+        <div class="stat-value" data-check-age>30</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">Legal purchase age</div>
+        <div class="stat-value t-salmon">21</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">Can't sell to anyone born after</div>
+        <div class="stat-value t-cool" data-cutoff-date>—</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ TRAINING ══════ -->
+<section class="wiki-section sand" data-tab="training">
+  <div class="wiki-inner">
+    <div class="wiki-eyebrow c-green" style="margin-bottom:0.6rem">TRAINING &amp; RECORDS</div>
+    <h2 class="wiki-h2">Every host holds a Service Permit</h2>
+    <p class="wiki-intro">Every host at Flux is required to hold a valid OLCC Service Permit before working a shift. It satisfies the state's pre-service and first-week training, though the quarterly refresher below still applies to everyone.</p>
+    <div class="step-list">
+      <div class="step-row">
+        <div class="step-when">Before your first shift</div>
+        <div class="step-what">Every host holds a valid OLCC Service Permit. That covers your pre-service training.</div>
+      </div>
+      <div class="step-row">
+        <div class="step-when">Every 3 months</div>
+        <div class="step-what">A refresher covering recognizing minors and visibly intoxicated guests, legal ID, spotting false ID, the checking-ID age above, refusal methods, consequences, and house policy.</div>
+      </div>
+      <div class="step-row">
+        <div class="step-when">If a mistake happens</div>
+        <div class="step-what">Staff involved in a sale to a minor or a visibly intoxicated guest must complete an Alcohol Server Education course within 45 days of notice.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ CHECKING ID ══════ -->
+<section class="wiki-section" data-tab="checkingId" style="display:none">
+  <div class="wiki-inner">
+    <div class="wiki-eyebrow c-green" style="margin-bottom:0.6rem">HOW TO CHECK ID</div>
+    <h2 class="wiki-h2">Establish a routine, and stick to it.</h2>
+    <p class="wiki-intro">Oregon law requires checking ID for anyone who looks under <span data-check-age>30</span>. Use the same three steps every time — touch, look, ask.</p>
+
+    <div class="card-grid">
+      <div class="wiki-card">
+        <div class="card-eyebrow">Step 1</div>
+        <div class="card-title">Touch</div>
+        <ul class="card-list">
+          <li>Raised edges around the photo</li>
+          <li>Bumpy surfaces</li>
+          <li>Irregular lamination</li>
+          <li>Cuts, slits, or pin holes</li>
+          <li>Peeling lamination or uneven corners</li>
+          <li>Thickness &amp; quality of the card</li>
+        </ul>
+      </div>
+      <div class="wiki-card">
+        <div class="card-eyebrow">Step 2</div>
+        <div class="card-title">Look</div>
+        <ul class="card-list">
+          <li>Check the expiration date first, and reject expired ID</li>
+          <li>Check the birth date</li>
+          <li>Does the photo look like this person?</li>
+          <li>Compare consistency of printing: letters/numbers that don't line up</li>
+          <li>Turn it over &amp; check the back</li>
+        </ul>
+      </div>
+      <div class="wiki-card">
+        <div class="card-eyebrow">Step 3</div>
+        <div class="card-title">Ask</div>
+        <ul class="card-list">
+          <li>Ask for a second piece of ID. Fake IDs rarely come with backup</li>
+          <li>Ask their zip code, address, or middle name spelling</li>
+          <li>Ask what year they graduated high school</li>
+          <li>Have them sign their name &amp; compare it to the ID</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="memory-aid">
+      <div class="card-eyebrow">MEMORY AID · U-CARD</div>
+      <div class="ucard-grid" style="margin-top:1rem">
+        <div class="ucard-row"><span class="wiki-num">U</span><div><div class="ucard-label">Unaltered</div><div class="ucard-desc">Feel for cuts, bumps, uneven lamination.</div></div></div>
+        <div class="ucard-row"><span class="wiki-num">C</span><div><div class="ucard-label">Current</div><div class="ucard-desc">Check the expiration date. Expired ID is not valid.</div></div></div>
+        <div class="ucard-row"><span class="wiki-num">A</span><div><div class="ucard-label">Age</div><div class="ucard-desc">Birth date must show the guest is 21 or older.</div></div></div>
+        <div class="ucard-row"><span class="wiki-num">R</span><div><div class="ucard-label">Readable</div><div class="ucard-desc">You must be able to read and understand it.</div></div></div>
+        <div class="ucard-row"><span class="wiki-num">D</span><div><div class="ucard-label">Description</div><div class="ucard-desc">Compare the photo: height, weight, facial structure.</div></div></div>
+      </div>
+    </div>
+
+    <div class="callout-warm">If you suspect the ID is false, or you just aren't sure the guest is 21+, don't sell or serve. Get a manager. Refusing a sale never needs an apology.</div>
+  </div>
+</section>
+
+<!-- ══════ ACCEPTABLE ID ══════ -->
+<section class="wiki-section sand" data-tab="acceptable" style="display:none">
+  <div class="wiki-inner">
+    <div class="wiki-eyebrow c-green" style="margin-bottom:0.6rem">ACCEPTABLE ID</div>
+    <h2 class="wiki-h2">Only six forms of ID count, alone.</h2>
+    <p class="wiki-intro">Must be non-digital, unexpired, and unaltered. A photo on a phone is never acceptable, no matter how official it looks.</p>
+
+    <div class="card-grid two">
+      <div class="wiki-card navy">
+        <div class="card-eyebrow">Accepted alone</div>
+        <div class="card-title">The six</div>
+        <ol class="card-list">
+          <li>Driver license from a U.S. state, DC, or a Canadian province or territory.</li>
+          <li>State-issued ID card with photo, name, date of birth &amp; physical description (incl. DC, Puerto Rico, Guam, N. Mariana Islands, US Virgin Islands, American Samoa) or Canadian equivalent.</li>
+          <li>ID card from a federally recognized Indigenous American tribe with photo, name, physical description &amp; date of birth.</li>
+          <li>Passport or passport card.</li>
+          <li>U.S. military ID card.</li>
+          <li>NEXUS or SENTRI card.</li>
+        </ol>
+      </div>
+      <div class="wiki-card">
+        <div class="card-eyebrow">Not accepted alone</div>
+        <div class="card-title">Common look-alikes</div>
+        <div class="chip-wrap">
+          <span class="chip">Green card</span>
+          <span class="chip">FAST card</span>
+          <span class="chip">Prison ID</span>
+          <span class="chip">Firearms/concealed-carry permit</span>
+          <span class="chip">IDNYC card</span>
+          <span class="chip">Social Security card</span>
+          <span class="chip">Pilot's license</span>
+          <span class="chip">Veteran Health ID</span>
+          <span class="chip">Student ID</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ GOOD FAITH ══════ -->
+<section class="wiki-section" data-tab="goodFaith" style="display:none">
+  <div class="wiki-inner">
+    <div class="wiki-eyebrow c-green" style="margin-bottom:0.6rem">GOOD FAITH EFFORT</div>
+    <h2 class="wiki-h2">Cutting off a visibly intoxicated guest</h2>
+    <p class="wiki-intro">Oregon law requires a good faith effort to remove a drink from anyone who's visibly intoxicated. That means one of two things:</p>
+    <div class="card-grid">
+      <div class="wiki-card cool">
+        <div class="card-eyebrow">Method 1</div>
+        <div class="card-title">Place your hand on the drink</div>
+        <div class="card-body">Physically take hold of the drink and try to remove it from the table or bar.</div>
+      </div>
+      <div class="wiki-card cool">
+        <div class="card-eyebrow">Method 2</div>
+        <div class="card-title">Make a verbal request</div>
+        <div class="card-body">Ask for the drink instead, if touching it could cause a disturbance.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ SIGNS ══════ -->
+<section class="wiki-section navy" data-tab="signs" style="display:none">
+  <div class="wiki-inner">
+    <div class="wiki-eyebrow c-cool" style="margin-bottom:0.6rem">VISIBLE INTOXICATION</div>
+    <h2 class="wiki-h2 on-dark">50 signs — you don't need a breathalyzer</h2>
+    <p class="wiki-intro on-dark">If you can tell on sight someone's been drinking or using other drugs, they're visibly intoxicated. You're not expected to know a blood alcohol number. One or two signs alone don't confirm it, but a combination — or a sudden change in behavior — is a strong signal. If you're not sure, don't serve.</p>
+    <div class="sign-grid">
+      <div class="sign-panel">
+        <div class="card-eyebrow">Appearance</div>
+        <div class="chip-wrap">
+          <span class="chip-dark">Bloodshot, glassy, or watery eyes</span>
+          <span class="chip-dark">Flushed face</span>
+          <span class="chip-dark">Droopy eyelids</span>
+          <span class="chip-dark">Blank stare or dazed look</span>
+          <span class="chip-dark">Twitching or tremors</span>
+          <span class="chip-dark">Disheveled clothing</span>
+        </div>
+      </div>
+      <div class="sign-panel">
+        <div class="card-eyebrow">Speech</div>
+        <div class="chip-wrap">
+          <span class="chip-dark">Thick, slurred speech</span>
+          <span class="chip-dark">Loud, noisy speech</span>
+          <span class="chip-dark">Loud then quiet</span>
+          <span class="chip-dark">Rambling train of thought</span>
+          <span class="chip-dark">Unusually fast or slow talking</span>
+          <span class="chip-dark">Slow response to questions</span>
+          <span class="chip-dark">Repetitive statements</span>
+          <span class="chip-dark">Bravado, boasting</span>
+          <span class="chip-dark">Irrational statements</span>
+        </div>
+      </div>
+      <div class="sign-panel">
+        <div class="card-eyebrow">Attitude</div>
+        <div class="chip-wrap">
+          <span class="chip-dark">Annoying other guests/staff</span>
+          <span class="chip-dark">Argumentative</span>
+          <span class="chip-dark">Aggressive or belligerent</span>
+          <span class="chip-dark">Obnoxious or mean</span>
+          <span class="chip-dark">Inappropriate advances</span>
+          <span class="chip-dark">Overly friendly</span>
+          <span class="chip-dark">Boisterous</span>
+        </div>
+      </div>
+      <div class="sign-panel">
+        <div class="card-eyebrow">Behavior</div>
+        <div class="chip-wrap">
+          <span class="chip-dark">Swaying, staggering, stumbling</span>
+          <span class="chip-dark">Can't sit straight</span>
+          <span class="chip-dark">Careless with money</span>
+          <span class="chip-dark">Difficulty making change</span>
+          <span class="chip-dark">Restless</span>
+          <span class="chip-dark">Depressed or sullen</span>
+          <span class="chip-dark">Crying or moody</span>
+          <span class="chip-dark">Sudden change in behavior</span>
+          <span class="chip-dark">Overly animated</span>
+          <span class="chip-dark">Crude speech or gestures</span>
+          <span class="chip-dark">Drowsy or falling asleep</span>
+          <span class="chip-dark">Lack of focus / eye contact</span>
+          <span class="chip-dark">Difficulty standing</span>
+          <span class="chip-dark">Unusual walk</span>
+          <span class="chip-dark">Can't find mouth with glass</span>
+          <span class="chip-dark">Falling off a chair</span>
+          <span class="chip-dark">Trouble lighting a cigarette</span>
+          <span class="chip-dark">Lighting more than one</span>
+          <span class="chip-dark">Clumsy</span>
+          <span class="chip-dark">Difficulty remembering</span>
+          <span class="chip-dark">Spilling drinks</span>
+          <span class="chip-dark">Disoriented</span>
+          <span class="chip-dark">Agitated, anxious</span>
+          <span class="chip-dark">Grinding teeth</span>
+          <span class="chip-dark">Vomiting</span>
+        </div>
+      </div>
+      <div class="sign-panel">
+        <div class="card-eyebrow">Other</div>
+        <div class="chip-wrap">
+          <span class="chip-dark">Odor of alcohol, marijuana, or chemicals</span>
+          <span class="chip-dark">Excessive perspiration</span>
+          <span class="chip-dark">Repeated trips to the restroom</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ HOUSE POLICY ══════ -->
+<section class="wiki-section" data-tab="housePolicy" style="display:none">
+  <div class="wiki-inner">
+    <div class="wiki-eyebrow c-green" style="margin-bottom:0.6rem">HOUSE POLICY</div>
+    <h2 class="wiki-h2">The four required policies, plus practices worth knowing</h2>
+    <p class="wiki-intro">Every OLCC Responsible Vendor house policy has to spell out these four things:</p>
+
+    <div class="policy-list">
+      <div class="policy-row">
+        <span class="wiki-num">1</span>
+        <div>
+          <div class="policy-title">When to check ID</div>
+          <div class="policy-desc">Anyone who looks under <span data-check-age>30</span>. OLCC's minimum is 26; we set ours higher to stay on the safe side.</div>
+        </div>
+      </div>
+      <div class="policy-row">
+        <span class="wiki-num">2</span>
+        <div>
+          <div class="policy-title">Accepted forms of ID</div>
+          <div class="policy-desc">Only the six forms above. No exceptions, no digital copies — if a guest pushes to use a digital ID, it may be an inspector testing you.</div>
+        </div>
+      </div>
+      <div class="policy-row">
+        <span class="wiki-num">3</span>
+        <div>
+          <div class="policy-title">How to check</div>
+          <div class="policy-desc">The touch, look, ask routine above — every time, for every guest.</div>
+        </div>
+      </div>
+      <div class="policy-row">
+        <span class="wiki-num">4</span>
+        <div>
+          <div class="policy-title">Consequences for selling to a minor</div>
+          <div class="policy-desc">First offense: a warning and retraining. Second offense: termination.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout-warm" style="margin-bottom:1.5rem">
+      <div class="ca-title">House rule: 2 drinks while soaking</div>
+      <div>Guests are limited to 2 drinks while actively soaking in a hot pool or cold plunge. They're welcome to more, but only once they're done soaking for the night.</div>
+    </div>
+
+    <div class="practice-panel">
+      <div class="card-eyebrow">STANDARD PRACTICE AT FLUX</div>
+      <p class="wiki-intro" style="margin:0.4rem 0 1.1rem">Every host follows these.</p>
+      <ul class="practice-list">
+        <li>If you refuse a sale, management has your back. Your decision will be supported, without question.</li>
+        <li>Every on-duty staff member is told when a guest's been cut off.</li>
+        <li>We post the visible-intoxication signs and the ID notice where guests can see them.</li>
+        <li>Staff don't push drinks. Food and non-alcoholic options are always offered.</li>
+        <li>A cut-off, refusal, or ejection gets logged; the staff member initials it by end of shift.</li>
+        <li>We help an intoxicated guest get home safely: call them a cab, point them to walkable food nearby, rather than let them drive.</li>
+        <li>Drinks are opened and poured for the guest. We don't sell sealed containers.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ SOURCES ══════ -->
+<section class="wiki-section navy">
+  <div class="wiki-inner">
+    <div class="wiki-eyebrow c-cool" style="margin-bottom:0.9rem">SOURCES</div>
+    <div class="source-links">
+      <a href="https://www.oregon.gov/olcc/docs/publications/Acceptable_ID_Alcohol_English.pdf" target="_blank" rel="noopener">Acceptable ID for Alcohol</a>
+      <a href="https://www.oregon.gov/olcc/Docs/ENGLISH-ifyouwereborn-ALCOHOL-TOBACCO.pdf" target="_blank" rel="noopener">If You Were Born After… sign</a>
+      <a href="https://www.oregon.gov/olcc/docs/publications/checking_id_routine.pdf" target="_blank" rel="noopener">ID Checking Routine</a>
+      <a href="https://www.oregon.gov/olcc/docs/publications/good_faith_effort_sign.pdf" target="_blank" rel="noopener">Good Faith Effort</a>
+      <a href="https://www.oregon.gov/olcc/docs/publications/50_signs_visible_intoxication.pdf" target="_blank" rel="noopener">50 Signs of Visible Intoxication</a>
+      <a href="https://www.oregon.gov/olcc/docs/responsible_vendor_program/RVP_training_requirements.pdf" target="_blank" rel="noopener">RVP: Training Requirements</a>
+      <a href="https://www.oregon.gov/olcc/docs/responsible_vendor_program/RVP_house_policy_guidelines.pdf" target="_blank" rel="noopener">RVP: House Policy Guidelines</a>
+      <a href="https://www.oregon.gov/olcc/docs/responsible_vendor_program/RVP_Tips_CheckingID.pdf" target="_blank" rel="noopener">RVP: Tips for Checking ID</a>
+      <a href="https://www.oregon.gov/olcc/docs/responsible_vendor_program/RVP_checklist.pdf" target="_blank" rel="noopener">RVP: Checklist</a>
+      <a href="https://www.oregon.gov/olcc/lic/pages/responsible_vendor_program.aspx" target="_blank" rel="noopener">Responsible Vendor Program overview</a>
+    </div>
+    <p class="source-note">Oregon Liquor &amp; Cannabis Commission (OLCC) · this page summarizes official publications and does not replace them. Age cutoffs update automatically each day.</p>
+  </div>
+</section>
+
+<footer>Flux Thermal Lounge · Bend, OR · Hosts Only</footer>
+
+<script src="js/config.js?v=2"></script>
+<script src="js/wiki.js?v=1"></script>
+</body>
+</html>

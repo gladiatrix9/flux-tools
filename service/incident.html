@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flux · Incident Report</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css?v=2">
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <img class="logo-mark" src="assets/flux-logo.svg" alt="Flux Thermal Lounge">
+    </div>
+    <div class="header-title">
+      Alcohol Service
+      <span>Host Portal · Incident Reporting</span>
+    </div>
+  </div>
+  <div class="tabs">
+    <a class="tab-btn" href="wiki.html">Guide</a>
+    <a class="tab-btn active" href="incident.html">Incident Report</a>
+    <a class="tab-btn cross" href="../tools/log.html">Water Testing</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ══════ FORM ══════ -->
+  <div id="form-wrap">
+
+    <div class="intro">
+      <div class="intro-icon">📝</div>
+      <div class="intro-text">
+        <p><strong>File this before you clock out.</strong> Memory for detail drops off fast, and a report written the same shift is worth far more than one written the next day.</p>
+        <p>Write what you <strong>saw and did</strong>, not what you concluded. &ldquo;Slurred speech, needed the wall to stay upright&rdquo; is a fact. &ldquo;Was drunk&rdquo; is a judgment — it&rsquo;s weaker on paper and easier to pick apart later.</p>
+      </div>
+    </div>
+
+    <div class="draft-bar" id="draft-bar"></div>
+
+    <!-- ── 1. WHEN & WHO ── -->
+    <div class="fsection">
+      <div class="fsection-top">
+        <div class="fsection-num">1</div>
+        <div class="fsection-title">When &amp; Who</div>
+      </div>
+      <div class="fsection-body">
+        <div class="field-row-3">
+          <div class="field">
+            <label class="field-label" for="incident_date">Date <span class="req">*</span></label>
+            <input type="date" id="incident_date">
+            <div class="field-error" id="err-incident_date">Required</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="incident_time">Time <span class="req">*</span></label>
+            <input type="time" id="incident_time">
+            <div class="field-error" id="err-incident_time">Required</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="reported_by">Reported By <span class="req">*</span></label>
+            <select id="reported_by"><option value="">— select —</option></select>
+            <div class="field-error" id="err-reported_by">Required</div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="other_staff">Other Staff Present</label>
+          <input type="text" id="other_staff" placeholder="Names of anyone else who witnessed it">
+          <div class="field-hint">Anyone who saw it. If this is ever revisited, a second name matters.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 2. WHAT HAPPENED ── -->
+    <div class="fsection">
+      <div class="fsection-top">
+        <div class="fsection-num">2</div>
+        <div class="fsection-title">What Happened</div>
+      </div>
+      <div class="fsection-body">
+        <div class="field">
+          <label class="field-label">Incident Type <span class="req">*</span></label>
+          <div class="field-hint">Check everything that applies.</div>
+          <div class="opt-grid" id="type-grid">
+            <label class="opt"><input type="checkbox" name="incident_type" value="Refused service — no valid ID"><span class="opt-label">Refused service — no valid ID<span class="opt-sub">no ID, expired, not accepted</span></span></label>
+            <label class="opt"><input type="checkbox" name="incident_type" value="Refused service — suspected fake ID"><span class="opt-label">Refused service — suspected fake ID<span class="opt-sub">altered, borrowed, mismatched</span></span></label>
+            <label class="opt"><input type="checkbox" name="incident_type" value="Refused service — underage"><span class="opt-label">Refused service — underage<span class="opt-sub">under 21 confirmed</span></span></label>
+            <label class="opt"><input type="checkbox" name="incident_type" value="Refused service — visible intoxication"><span class="opt-label">Refused service — visible intoxication<span class="opt-sub">first drink declined</span></span></label>
+            <label class="opt"><input type="checkbox" name="incident_type" value="Cut off — stopped further service"><span class="opt-label">Cut off — stopped further service<span class="opt-sub">had been served, then stopped</span></span></label>
+            <label class="opt"><input type="checkbox" name="incident_type" value="Over-service concern"><span class="opt-label">Over-service concern<span class="opt-sub">served more than we should have</span></span></label>
+            <label class="opt"><input type="checkbox" name="incident_type" value="Guest asked to leave"><span class="opt-label">Guest asked to leave</span></label>
+            <label class="opt"><input type="checkbox" name="incident_type" value="Disruptive or aggressive behavior"><span class="opt-label">Disruptive or aggressive behavior</span></label>
+            <label class="opt severe"><input type="checkbox" name="incident_type" value="Medical event"><span class="opt-label">Medical event<span class="opt-sub">fainting, vomiting, unresponsive</span></span></label>
+            <label class="opt severe"><input type="checkbox" name="incident_type" value="Injury"><span class="opt-label">Injury<span class="opt-sub">to a guest or to staff</span></span></label>
+            <label class="opt severe"><input type="checkbox" name="incident_type" value="Guest attempted to drive"><span class="opt-label">Guest attempted to drive</span></label>
+            <label class="opt"><input type="checkbox" name="incident_type" value="Other"><span class="opt-label">Other<span class="opt-sub">describe in the narrative</span></span></label>
+          </div>
+          <div class="field-error" id="err-incident_type">Select at least one</div>
+        </div>
+
+        <div class="callout warn" id="severe-callout" style="display:none">
+          <span class="callout-icon">⚠</span>
+          <span><strong>Notify a manager now — Dini or Mark.</strong> Don&rsquo;t wait until this form is submitted. Fill in the escalation section below once you have.</span>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="location">Location <span class="req">*</span></label>
+          <select id="location">
+            <option value="">— select —</option>
+            <option>Social Lounge</option>
+            <option>Equinox</option>
+            <option>Solstice</option>
+            <option>Lobby / front desk</option>
+            <option>Locker rooms</option>
+            <option>Patio</option>
+            <option>Parking lot</option>
+            <option>Other</option>
+          </select>
+          <div class="field-error" id="err-location">Required</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 3. GUEST ── -->
+    <div class="fsection">
+      <div class="fsection-top">
+        <div class="fsection-num">3</div>
+        <div class="fsection-title">Guest</div>
+        <div class="fsection-optional">All optional</div>
+      </div>
+      <div class="fsection-body">
+        <div class="privacy-note">
+          Record only what you&rsquo;d need to identify this guest again or to explain the decision. A description is usually enough. Don&rsquo;t copy down an ID number, address, or date of birth — we have no reason to keep those, and keeping them creates a problem we don&rsquo;t otherwise have.
+        </div>
+        <div class="field">
+          <label class="field-label" for="guest_description">Description</label>
+          <input type="text" id="guest_description" placeholder="e.g. man, ~30s, tall, grey hoodie, party of four">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="guest_name">Name, if known</label>
+            <input type="text" id="guest_name" placeholder="From a reservation, or if they gave it">
+          </div>
+          <div class="field">
+            <label class="field-label" for="id_checked">Was ID Checked?</label>
+            <select id="id_checked">
+              <option value="">— select —</option>
+              <option>Yes — accepted</option>
+              <option>Yes — rejected</option>
+              <option>No — not required</option>
+              <option>No — guest refused to present</option>
+              <option>Not applicable</option>
+            </select>
+          </div>
+        </div>
+        <div class="conditional" id="id-conditional">
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label" for="id_type">ID Type</label>
+              <select id="id_type">
+                <option value="">— select —</option>
+                <option>Oregon driver license / ID</option>
+                <option>Out-of-state driver license / ID</option>
+                <option>US passport / passport card</option>
+                <option>Foreign passport</option>
+                <option>Military ID</option>
+                <option>Tribal ID</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="id_issue">What Was Wrong With It</label>
+              <input type="text" id="id_issue" placeholder="e.g. expired, photo didn't match, edges peeling">
+            </div>
+          </div>
+          <div class="callout note">
+            <span class="callout-icon">ℹ</span>
+            <span>If you kept or refused to return a suspected fake, say so in the narrative — that&rsquo;s a detail worth having on record.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 4. OBSERVATIONS ── -->
+    <div class="fsection">
+      <div class="fsection-top">
+        <div class="fsection-num">4</div>
+        <div class="fsection-title">What You Observed</div>
+      </div>
+      <div class="fsection-body">
+        <div class="field">
+          <label class="field-label">Signs Observed</label>
+          <div class="field-hint">Only check what you actually saw yourself.</div>
+          <div class="opt-grid">
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Slurred or thick speech"><span class="opt-label">Slurred or thick speech</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Unsteady on feet / swaying"><span class="opt-label">Unsteady on feet / swaying</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Needed support to stand or walk"><span class="opt-label">Needed support to stand or walk</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Glassy or bloodshot eyes"><span class="opt-label">Glassy or bloodshot eyes</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Repeating themselves"><span class="opt-label">Repeating themselves</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Unusually loud"><span class="opt-label">Unusually loud</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Argumentative or belligerent"><span class="opt-label">Argumentative or belligerent</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Difficulty handling money or cards"><span class="opt-label">Difficulty handling money or cards</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Ordering rapidly or doubling up"><span class="opt-label">Ordering rapidly or doubling up</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Falling asleep / hard to rouse"><span class="opt-label">Falling asleep / hard to rouse</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="Vomiting"><span class="opt-label">Vomiting</span></label>
+            <label class="opt"><input type="checkbox" name="signs_observed" value="None observed"><span class="opt-label">None observed</span></label>
+          </div>
+        </div>
+
+        <div class="callout note">
+          <span class="callout-icon">🌡</span>
+          <span><strong>Heat matters here.</strong> Hot soaking speeds up how alcohol hits and makes dehydration look like intoxication — and the reverse. If the guest had been in a hot pool, note roughly how long in the narrative.</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="drinks_served">Drinks Served (that we know of)</label>
+            <input type="text" id="drinks_served" placeholder="e.g. 3 beers, or unknown">
+          </div>
+          <div class="field">
+            <label class="field-label" for="service_period">Over What Period</label>
+            <input type="text" id="service_period" placeholder="e.g. ~90 min, 7:15–8:45">
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="narrative">Narrative <span class="req">*</span></label>
+          <div class="field-hint">What happened, in order. Who said what. Stick to facts you can stand behind — if you&rsquo;re unsure of a detail, write that you&rsquo;re unsure rather than guessing.</div>
+          <textarea id="narrative" class="tall" placeholder="At about 8:30 I noticed…"></textarea>
+          <div class="field-error" id="err-narrative">Required</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 5. WHAT YOU DID ── -->
+    <div class="fsection">
+      <div class="fsection-top">
+        <div class="fsection-num">5</div>
+        <div class="fsection-title">What You Did</div>
+      </div>
+      <div class="fsection-body">
+        <div class="field">
+          <label class="field-label" for="actions_taken">Actions Taken <span class="req">*</span></label>
+          <div class="field-hint">Include what you offered as well as what you refused — water, food, a place to sit, time.</div>
+          <textarea id="actions_taken" placeholder="Stopped service, offered water and a table by the window, stayed with them until…"></textarea>
+          <div class="field-error" id="err-actions_taken">Required</div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="transportation">How Did They Get Home?</label>
+          <div class="field-hint">If someone was cut off or left impaired, this is the single most important line in the report.</div>
+          <select id="transportation">
+            <option value="">— select —</option>
+            <option>Rideshare — we booked it</option>
+            <option>Rideshare — they booked it</option>
+            <option>Taxi</option>
+            <option>Picked up by a friend or family member</option>
+            <option>Sober person in their party drove</option>
+            <option>Walked</option>
+            <option>Stayed on site until sober</option>
+            <option>Drove themselves — we tried to stop them</option>
+            <option>Unknown</option>
+            <option>Not applicable</option>
+          </select>
+        </div>
+        <div class="conditional" id="drove-conditional">
+          <div class="callout warn">
+            <span class="callout-icon">⚠</span>
+            <span><strong>Tell a manager (Dini or Mark) tonight, and write down the vehicle and plate if you got them.</strong> Put the time they left and anything you said to them in the narrative above. This is the situation where an accurate contemporaneous record matters most.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 6. ESCALATION ── -->
+    <div class="fsection">
+      <div class="fsection-top">
+        <div class="fsection-num">6</div>
+        <div class="fsection-title">Escalation &amp; Follow-Up</div>
+      </div>
+      <div class="fsection-body">
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="manager_notified">Manager Notified</label>
+            <select id="manager_notified"><option value="">— select —</option><option>Not notified</option></select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="manager_notified_at">Time Notified</label>
+            <input type="time" id="manager_notified_at">
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="police_ems">Police or EMS Involved?</label>
+          <select id="police_ems">
+            <option value="">— select —</option>
+            <option>No</option>
+            <option>EMS called — we called</option>
+            <option>EMS called — guest or party called</option>
+            <option>Police called — we called</option>
+            <option>Police called — guest or party called</option>
+            <option>Police arrived — not called by us</option>
+          </select>
+        </div>
+        <div class="conditional" id="police-conditional">
+          <div class="field">
+            <label class="field-label" for="police_ems_detail">Details</label>
+            <input type="text" id="police_ems_detail" placeholder="Time called, time arrived, unit or officer name, case number">
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="follow_up">Follow-Up Needed</label>
+          <textarea id="follow_up" placeholder="e.g. guest left a card behind; check camera footage before it rolls over; flag this reservation name" style="min-height:70px"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="submit-row">
+      <button class="submit-btn" id="review-btn" onclick="reviewIncident()">Review &amp; Submit</button>
+      <div class="submit-note">You&rsquo;ll see the full report before anything is filed. Once filed it can&rsquo;t be edited — corrections get filed as a follow-up report.</div>
+    </div>
+
+    <!-- ── CONFIRM ── -->
+    <div class="confirm-panel" id="confirm-panel">
+      <div class="confirm-title">Check this over before filing</div>
+      <div class="confirm-body" id="confirm-body"></div>
+      <div class="confirm-actions">
+        <button class="submit-btn" id="submit-btn" onclick="submitIncident()">File Report</button>
+        <button class="btn-secondary" onclick="cancelReview()">Go Back &amp; Edit</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════ SUCCESS ══════ -->
+  <div class="success-panel" id="success-panel">
+    <span class="success-check">✓</span>
+    <div class="success-title">Report filed</div>
+    <div class="success-id" id="success-id">—</div>
+    <div class="success-sub">
+      Saved to the incident log and emailed to management.<br>
+      Write this ID down if you need to reference it later.
+    </div>
+    <div class="success-actions">
+      <button class="submit-btn" onclick="location.reload()">File Another Report</button>
+      <a class="btn-secondary" href="../tools/log.html" style="text-decoration:none;display:inline-block">Water Testing →</a>
+    </div>
+  </div>
+
+</main>
+
+<footer>Flux Thermal Lounge · Bend, OR · Hosts Only</footer>
+
+<script src="js/config.js?v=2"></script>
+<script src="js/incident.js?v=2"></script>
+</body>
+</html>

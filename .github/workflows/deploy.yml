@@ -4,7 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'tools/**'   # only runs when tools/ files change
+      - 'tools/**'     # water testing  -> flux-lounge.com/tools
+      - 'service/**'   # alcohol service -> flux-lounge.com/service
   workflow_dispatch:   # also allows manual trigger from GitHub Actions UI
 
 jobs:
@@ -21,4 +22,16 @@ jobs:
           WPE_SSHG_KEY_PRIVATE: ${{ secrets.WPE_SSHG_KEY_PRIVATE }}
           SRC_PATH: "tools/"
           REMOTE_PATH: "tools/"
+          FLAGS: -azvr --inplace --delete --exclude=.*
+
+      # Separate step, not a combined SRC_PATH: --delete is scoped to the
+      # directory being synced, so each one must be its own rsync or the
+      # second would wipe the first.
+      - name: Deploy service/ to WP Engine
+        uses: wpengine/github-action-wpe-site-deploy@v3
+        with:
+          WPE_ENV: fluxprd
+          WPE_SSHG_KEY_PRIVATE: ${{ secrets.WPE_SSHG_KEY_PRIVATE }}
+          SRC_PATH: "service/"
+          REMOTE_PATH: "service/"
           FLAGS: -azvr --inplace --delete --exclude=.*
