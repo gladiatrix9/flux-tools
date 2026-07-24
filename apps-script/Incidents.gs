@@ -27,7 +27,7 @@ const INCIDENT_SHEET_NAME     = 'Incidents';
 const NOTIFY_EMAIL   = 'hello@flux-lounge.com';
 const NOTIFY_ENABLED = true;
 
-const BACKEND_VERSION = '2026-07-23-incidents-v1';
+const BACKEND_VERSION = '2026-07-24-incidents-v2';
 
 const COLUMNS = [
   'Timestamp',
@@ -159,12 +159,17 @@ function saveIncident(data) {
     lock.releaseLock();
   }
 
+  let emailed    = false;
+  let emailError = '';
   if (NOTIFY_ENABLED) {
     try {
       notify(incidentId, data);
+      emailed = true;
     } catch (err) {
       // A failed notification must never fail the save — the record
-      // is already committed and that's the part that matters.
+      // is already committed and that's the part that matters. The
+      // status is returned so the front end / a test can see it.
+      emailError = err.message;
       console.error('Notification failed for ' + incidentId + ': ' + err.message);
     }
   }
@@ -172,6 +177,8 @@ function saveIncident(data) {
   return jsonResponse({
     success:     true,
     incident_id: incidentId,
+    emailed:     emailed,
+    email_error: emailError,
     version:     BACKEND_VERSION,
   });
 }
@@ -311,4 +318,25 @@ function setupIncidentSheet() {
   const ss = SpreadsheetApp.openById(INCIDENT_SPREADSHEET_ID);
   getOrCreateSheet(ss);
   Logger.log('Incidents sheet ready: ' + ss.getUrl());
+}
+
+// ─── EMAIL AUTHORIZATION / TEST ──────────────────────────────
+// Run this once from the Apps Script editor. It does two things:
+//   1. Triggers the mail-send permission prompt if it hasn't been
+//      granted — approve it. That permission is what the web app was
+//      missing when incident emails didn't arrive. (setupIncidentSheet
+//      only touches the Sheet, so on its own it never grants mail.)
+//   2. Sends one email to NOTIFY_EMAIL so you can confirm hello@
+//      actually receives it (check spam too).
+// After approving, redeploy: Deploy → Manage deployments → Edit → New
+// version, so the live web app runs this authorized code.
+
+function sendTestEmail() {
+  MailApp.sendEmail({
+    to:      NOTIFY_EMAIL,
+    subject: 'Flux incident log — test email',
+    body:    'If you are reading this, incident notifications are authorized and '
+           + 'delivering to ' + NOTIFY_EMAIL + '.',
+  });
+  Logger.log('Test email sent to ' + NOTIFY_EMAIL);
 }
