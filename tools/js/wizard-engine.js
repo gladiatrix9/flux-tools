@@ -280,6 +280,8 @@ function wizAdjBlock(pid) {
     '<div class="wiz-adj-row"><span>ORP1 set level — from</span>'+
       inp('orpFrom', hint.orp && hint.orp.from, '5', '750')+'<span>→ to</span>'+
       inp('orpTo',   hint.orp && hint.orp.to,   '5', '755')+'<span>mV</span></div>'+
+    '<div class="wiz-adj-row"><input class="wiz-adj-note" placeholder="Note (required if flagged)" value="'+v('note')+'"'+
+      ' oninput="wizSaveAdj(\''+pid+'\',\'note\',this.value)"></div>'+
     '<label class="wiz-adj-auto"><input type="checkbox" id="'+pid+'-adj-auto"'+(adj.auto ? ' checked' : '')+
       ' onchange="wizSaveAdj(\''+pid+'\',\'auto\',this.checked)"> The red <strong>Auto</strong> light is on (controller is dosing again)</label>'+
     '<div class="wiz-adj-err" id="'+pid+'-adj-err"></div>'+
@@ -302,16 +304,19 @@ function wizCollectAdjustments(pid) {
   if (has(adj.phFrom) || has(adj.phTo)) {
     if (!has(adj.phFrom) || !has(adj.phTo)) return { error: 'Enter both the IPS pH reading and what you calibrated it to.' };
     entries.push({ frequency:'Adjustment', item_id:'ph-cal', item:'pH calibration (pH Cal)', pool:pid,
-                   result:'Adjusted', from:String(adj.phFrom), to:String(adj.phTo) });
+                   result:'Adjusted', from:String(adj.phFrom), to:String(adj.phTo), notes:(adj.note || '').trim() });
   }
   if (has(adj.orpFrom) || has(adj.orpTo)) {
     if (!has(adj.orpFrom) || !has(adj.orpTo)) return { error: 'Enter both the old and new ORP1 set level.' };
     const cfg = ORP_SET[POOLS[pid].type];
     const from = parseFloat(adj.orpFrom), to = parseFloat(adj.orpTo);
     if (Math.abs(to - from) > cfg.step) return { error: 'ORP1 set level changes are 5 mV at a time. Check the numbers, or flag to Dini.' };
-    if (to < cfg.min || to > cfg.max) return { error: 'That ORP1 set level is outside '+cfg.min+'–'+cfg.max+' mV. Set it back and flag to Dini.' };
+    const flag = from !== to ? orpDriftFlag(pid, from, to) : '';
+    const note = (adj.note || '').trim();
+    if (flag && !note) return { error: 'Flagged to Dini: ' + flag + '. Add a short note about why.' };
     entries.push({ frequency:'Adjustment', item_id:'orp-setlevel', item:'ORP1 set level', pool:pid,
-                   result:'Adjusted', from:String(from), to:String(to) });
+                   result:'Adjusted', from:String(from), to:String(to),
+                   notes: (flag ? '⚑ ' + flag + (note ? ' — ' : '') : '') + note });
   }
   if (entries.length && !adj.auto) {
     return { error: 'Confirm the red Auto light is on — the controller doesn\'t dose in standby.' };

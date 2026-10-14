@@ -8,7 +8,10 @@
 //     keeping up (feed system vs. ORP set level).
 //   • High FC → pause / turn down the feed. Chlorine dissipates on its own.
 //   • ORP set level changes: 5 mV at a time, once per pool per day,
-//     within ORP_SET bounds (reference-data.js).
+//     No min/max — ORP doesn't track real chlorine closely enough to cap it;
+//     every change is logged so Dini can see drift over time.
+//   • No closures. 0 ppm FC → dose by hand now; guests soak again once FC
+//     is back in the comfortable range.
 
 // Prefill hints for the review screen's "IPS adjustments" block.
 const _calcHints = {};
@@ -42,6 +45,7 @@ function calc(poolId) {
   // Current ORP1 set level: last one logged, else commissioning value.
   const loggedSet = currentOrpSetLevel(poolId);
   const setLevel  = loggedSet !== null ? loggedSet : oset.default;
+  const setWord   = loggedSet !== null ? 'its' : 'the usual';   // until a set level has been recorded
 
   // ORP set-level advice with guardrails. dir = +1 raise / -1 lower.
   function orpSetAdvice(dir) {
@@ -50,16 +54,15 @@ function calc(poolId) {
       return ` The ORP1 set level was already adjusted today${done.by ? ' by ' + done.by : ''} (to ${done.to} mV) — <strong>don't adjust it again today.</strong> If this keeps happening, flag to Dini.`;
     }
     const next = setLevel + dir * oset.step;
-    if (next > oset.max || next < oset.min) {
-      return ` The ORP1 set level is already at ${setLevel} mV, the ${dir > 0 ? 'top' : 'bottom'} of the allowed range — <strong>don't go further.</strong> The ORP sensor may need cleaning; flag to Dini.`;
-    }
+    const flag = orpDriftFlag(poolId, setLevel, next);
     // Only prefill the review screen when we actually know the current set level.
     hints.orpRec = dir;
     if (loggedSet !== null) hints.orp = { from: setLevel, to: next };
     const known = loggedSet !== null
       ? `${setLevel} → ${next} mV`
-      : `check the current value first; commissioning value is ${oset.default} mV`;
-    return ` ${dir > 0 ? 'Raise' : 'Lower'} the <strong>ORP1 set level by 5 mV</strong> (${known}) and log it in the review screen.` + howtoInline('orpSet');
+      : `check the current value on the controller first`;
+    return ` ${dir > 0 ? 'Raise' : 'Lower'} the <strong>ORP1 set level by 5 mV</strong> (${known}) and log it in the review screen.` +
+      (flag ? ` <strong>Note:</strong> ${flag} — add a note when you log it; this gets flagged to Dini.` : '') + howtoInline('orpSet');
   }
 
   // ── TEMP ──
@@ -108,17 +111,28 @@ function calc(poolId) {
       const dose = fmtLiquid(doses.cl * (clTarget - freePpm));
       // Why isn't the controller keeping up? Compare its ORP reading to the set level.
       let why;
-      if (isNaN(orpV)) {
+      const lowAlert = ipsSettingNum(poolId, 'ips-orp-low');
+      const phHighAl = ipsSettingNum(poolId, 'ips-ph-high') ?? 8.0;
+      if (!isNaN(ipsPhV) && ipsPhV >= phHighAl) {
+        why = ` The controller reads pH ${ipsPhV.toFixed(1)}, at or above its pH High Alert (${phHighAl}), which <strong>also stops chlorine feed</strong>. Fix pH first (see pH below), then confirm the alert light goes off.`;
+      } else if (lowAlert !== null && !isNaN(orpV) && orpV < lowAlert) {
+        why = ` The controller reads ORP ${orpV} mV, below its Low Alert (${lowAlert} mV), so it has <strong>stopped feeding chlorine on purpose</strong> — that's the leak protection. Before relying on the auto-feed, check the feed system for leaks.` + howtoInline('feedCheck') +
+          ` Once your hand dose brings ORP back above ${lowAlert} mV for a minute, the controller starts feeding again on its own — watch that FC holds.`;
+      } else if (isNaN(orpV)) {
         why = ' Then check the IPS ORP reading to see whether the controller is calling for chlorine.';
       } else if (orpV >= setLevel - 10) {
         // Controller sees enough ORP → it isn't feeding. Set level is too low for real FC.
-        why = ` The controller reads ORP ${orpV} mV — at or above its ~${setLevel} mV set level, so it isn't feeding.` + orpSetAdvice(+1);
+        why = ` The controller reads ORP ${orpV} mV — at or above ${setWord} ~${setLevel} mV set level, so it isn't feeding.` + orpSetAdvice(+1);
       } else {
         // Controller sees low ORP → it should be feeding. Feed system problem.
-        why = ` The controller reads ORP ${orpV} mV, below its ~${setLevel} mV set level, so it <em>should</em> be feeding chlorine — <strong>check the feed system</strong>.` + howtoInline('feedCheck');
+        why = ` The controller reads ORP ${orpV} mV, below ${setWord} ~${setLevel} mV set level, so it <em>should</em> be feeding chlorine — <strong>check the feed system</strong>.` + howtoInline('feedCheck');
       }
-      if (fcCritical) {
-        const what = freePpm === 0 ? 'No free chlorine detected' : `Very low (${fc} ppm)`;
+      if (freePpm === 0) {
+        // No measurable chlorine — fix it right away; guests soak once it's back.
+        actions.push({ st: 'alert', pri: 0, label: '⚠ Free Cl — none detected', msg:
+          `No free chlorine detected. <strong>Add ${dose} Hasachlor by hand now</strong> with pumps running to bring FC to ${clTarget.toFixed(1)} ppm. Re-test in 30 min — guests can soak again once FC is at least ${r.okLow} ppm. Keep dosing by hand until the auto-feed is keeping up.${why} Alert Dini now.` });
+      } else if (fcCritical) {
+        const what = `Very low (${fc} ppm)`;
         actions.push({ st: 'alert', pri: 0, label: '⚠ Free Cl — urgent', msg:
           `${what}. <strong>Add ${dose} Hasachlor by hand now</strong> with pumps running to bring FC to ${clTarget.toFixed(1)} ppm. Re-test in 30 min and repeat until FC is back in range and the auto-feed is keeping up.${why} Alert Dini now.` });
       } else {
@@ -130,7 +144,7 @@ function calc(poolId) {
       let msg = `${fcVeryHigh ? 'Very high' : 'Above the comfortable range'} (${fc} ppm) — <strong>don't add chlorine.</strong> It will come down on its own as it's used up.`;
       if (!isNaN(orpV) && orpV < setLevel - 10) {
         // Controller thinks ORP is low even though FC is high → sensor reading low.
-        msg += ` The controller reads ORP ${orpV} mV (below its ~${setLevel} mV set level), so it's probably still feeding — the ORP sensor is likely reading low. Pause the feed and flag to Dini to clean the ORP sensor.` + howtoInline('pauseFeed');
+        msg += ` The controller reads ORP ${orpV} mV (below ${setWord} ~${setLevel} mV set level), so it's probably still feeding — the ORP sensor is likely reading low. Pause the feed and flag to Dini to clean the ORP sensor.` + howtoInline('pauseFeed');
       } else {
         if (fcVeryHigh) msg += ' Pause the chlorine feed until FC is back in range.' + howtoInline('pauseFeed');
         msg += orpSetAdvice(-1);
@@ -190,7 +204,9 @@ function calc(poolId) {
     statuses.push(st);
     if (freeSt === 'ok' && st === 'alert') {
       actions.push({ st: 'warn', pri: 2, label: 'ORP', msg: orpV < r.warnLow
-        ? `Reads ${orpV} mV, but the Taylor test shows FC ${freePpm.toFixed(1)} ppm (fine). The ORP sensor is likely reading low, which can make the controller over-feed chlorine. Don't change the set level — flag to Dini to clean the ORP sensor, and watch for FC climbing.`
+        ? (ipsSettingNum(poolId, 'ips-orp-low') !== null && orpV < ipsSettingNum(poolId, 'ips-orp-low')
+            ? `Reads ${orpV} mV — below the controller's Low Alert (${ipsSettingNum(poolId, 'ips-orp-low')} mV), so <strong>chlorine feed is stopped</strong>, even though the Taylor test shows FC ${freePpm.toFixed(1)} ppm (fine). The ORP sensor is likely reading low. Don't change the set level — re-test FC in 2 hrs and hand-dose if it drops, check the feed lines for leaks, and flag to Dini to clean the ORP sensor.` + howtoInline('feedCheck')
+            : `Reads ${orpV} mV, but the Taylor test shows FC ${freePpm.toFixed(1)} ppm (fine). The ORP sensor is likely reading low, which can make the controller over-feed chlorine. Don't change the set level — flag to Dini to clean the ORP sensor, and watch for FC climbing.`)
         : `Reads ${orpV} mV, but the Taylor test shows FC ${freePpm.toFixed(1)} ppm (fine). The ORP sensor may be reading high. Don't change the set level — flag to Dini.` });
     } else if (freeSt === null && orpV < r.warnLow) {
       actions.push({ st: 'alert', pri: 0, label: 'ORP', msg:
@@ -401,7 +417,7 @@ function updateOverall(poolId, statuses, actions, lsi) {
     return;
   }
 
-  if (statuses.includes('alert'))     { chip.className = 'overall-chip alert'; chip.textContent = '⚠ Needs attention'; }
+  if (statuses.includes('alert')) { chip.className = 'overall-chip alert'; chip.textContent = '⚠ Needs attention'; }
   else if (statuses.includes('warn')) { chip.className = 'overall-chip warn';  chip.textContent = 'Needs adjustment'; }
   else                                { chip.className = 'overall-chip ok';    chip.textContent = '✓ In range'; }
 
@@ -415,4 +431,24 @@ function updateOverall(poolId, statuses, actions, lsi) {
       actionsEl.style.display = 'none';
     }
   }
+}
+
+// ─── ORP SET-LEVEL DRIFT FLAG ────────────────────────────────
+// No hard limits — but a change is flagged to Dini (with a required note)
+// when it takes the set level more than 50 mV from where it was first
+// recorded, or is the 3rd change in a row in the same direction.
+function orpDriftFlag(poolId, from, to) {
+  const hist = (_equipHist['orp-setlevel|' + poolId] || []).filter(h => h.to !== '');
+  const base = hist.length ? parseFloat(hist[0].to) : ORP_SET[POOLS[poolId].type].default;
+  const out  = [];
+  if (!isNaN(base) && Math.abs(to - base) > 50) {
+    out.push(`this puts it ${to > base ? '+' : ''}${to - base} mV from where it started (${base} mV)`);
+  }
+  const dir = Math.sign(to - from);
+  const changes = hist.filter(h => h.result === 'Adjusted' || h.result === 'Changed')
+                      .map(h => Math.sign(parseFloat(h.to) - parseFloat(h.from)));
+  if (dir !== 0 && changes.length >= 2 && changes.slice(-2).every(d => d === dir)) {
+    out.push(`this is the 3rd ${dir > 0 ? 'increase' : 'decrease'} in a row`);
+  }
+  return out.join(', and ');
 }

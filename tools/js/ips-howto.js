@@ -17,6 +17,21 @@
 
 const IPS_HOWTO = {
 
+  readSettings: {
+    title: 'Read or change the controller settings',
+    html:
+      '<p class="hw-note">Use this to record a controller\'s settings, or to change one. Every change gets recorded in the Controller settings section on this tab.</p>' +
+      '<ol class="hw-steps">' +
+        '<li>Press <strong>Mode</strong> once. The green <strong>pH standby</strong> light comes on. <em>Dosing is paused while you\'re in standby.</em></li>' +
+        '<li>Press <strong>Set Level</strong>, <strong>High Alert</strong>, <strong>Low Alert</strong> and <strong>Over Timer</strong> one at a time — each value shows on the pH display. Write them down.</li>' +
+        '<li>Press <strong>Mode</strong> again. The yellow <strong>ORP1 standby</strong> light comes on. Press the same four buttons — values show on the ORP display.</li>' +
+        '<li>Only press <strong>▲ / ▼</strong> if you mean to change that setting (it changes whichever setting is showing).</li>' +
+        '<li>Press <strong>Mode</strong> repeatedly until the red <strong>Auto</strong> light is on.</li>' +
+        '<li>Enter the values under <strong>Controller settings</strong> and save. If you changed one, say why.</li>' +
+      '</ol>' +
+      '<div class="hw-warn">⚠ Changing the <strong>Dose Timer</strong> resets the <strong>Over Timer</strong> to its default (IPS manual) — check and record the Over Timer again afterwards.</div>'
+  },
+
   phCal: {
     title: 'Calibrate pH on the IPS controller',
     html:
@@ -38,7 +53,7 @@ const IPS_HOWTO = {
     title: 'Adjust the ORP1 set level',
     html:
       '<p class="hw-note">The set level is the ORP the controller aims for. Higher set level = more chlorine. Only adjust when the Log tab tells you to.</p>' +
-      '<div class="hw-rules"><strong>Rules:</strong> 5 mV per adjustment · once per pool per day · hot soaks 700–800 mV, cold plunges 650–750 mV — never go outside that without Dini · always log it.</div>' +
+      '<div class="hw-rules"><strong>Rules:</strong> 5 mV per adjustment · once per pool per day · always log it. If the same pool needs adjusting day after day in the same direction, flag to Dini — the ORP sensor may need cleaning.</div>' +
       '<ol class="hw-steps">' +
         '<li>Press <strong>Mode</strong> twice. The yellow <strong>ORP1 standby</strong> light comes on (the first press is pH standby).</li>' +
         '<li>Press <strong>Set Level</strong>. The ORP display shows the current set level — note it down.</li>' +

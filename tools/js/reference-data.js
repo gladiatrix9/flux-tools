@@ -59,12 +59,13 @@ function getRanges(type) {
 }
 
 // ─── IPS M920 ORP1 SET LEVEL — host adjustment guardrails ────
-// default = commissioning set level (O&M manual, "Setpoints").
-// Hosts move it 5 mV at a time, once per pool per day, and never
-// outside min/max without Dini.
+// default = commissioning set level (O&M manual, "Setpoints"), used only
+// until the current set level has been recorded. Hosts move it 5 mV at a
+// time, once per pool per day. No min/max: ORP doesn't track real
+// chlorine closely enough to cap it — every change is logged instead.
 const ORP_SET = {
-  hot:  { default: 750, min: 700, max: 800, step: 5 },
-  cold: { default: 700, min: 650, max: 750, step: 5 },
+  hot:  { default: 750, step: 5 },
+  cold: { default: 700, step: 5 },
 };
 
 // pH difference (IPS display vs Taylor) that calls for a pH Cal.
@@ -83,7 +84,38 @@ function currentOrpSetLevel(poolId) {
 }
 function orpAdjustedToday(poolId) {
   const e = _equipLast['orp-setlevel|' + poolId];
-  return !!(e && _equipToday && e.date === _equipToday) ? e : null;
+  // A baseline recording ("Recorded") doesn't count as an adjustment.
+  return !!(e && _equipToday && e.date === _equipToday && (e.result === 'Adjusted' || e.result === 'Changed')) ? e : null;
+}
+
+// History (oldest → newest) for trended items, keyed "itemId|poolId".
+let _equipHist = {};
+
+// ─── IPS M920 SETTINGS RECORD ────────────────────────────────
+// Each controller's settings are recorded once on the Equipment tab, then
+// again whenever anything changes. `def` = factory default from the IPS
+// manual (shown as a placeholder only — not assumed to be what's set).
+const IPS_SETTINGS = [
+  { id:'ips-ph-setlevel',   grp:'pH',   label:'Set Level',  unit:'',   def:'7.4', step:'0.1' },
+  { id:'ips-ph-high',       grp:'pH',   label:'High Alert', unit:'',   def:'8.0', step:'0.1' },
+  { id:'ips-ph-low',        grp:'pH',   label:'Low Alert',  unit:'',   def:'7.0', step:'0.1' },
+  { id:'ips-ph-overtimer',  grp:'pH',   label:'Over Timer', unit:'',   def:'60',  text:true },
+  { id:'orp-setlevel',      grp:'ORP1', label:'Set Level',  unit:'mV', def:'650', step:'5' },
+  { id:'ips-orp-high',      grp:'ORP1', label:'High Alert', unit:'mV', def:'900', step:'5' },
+  { id:'ips-orp-low',       grp:'ORP1', label:'Low Alert',  unit:'mV', def:'100', step:'5' },
+  { id:'ips-orp-overtimer', grp:'ORP1', label:'Over Timer', unit:'',   def:'60',  text:true },
+];
+
+// Last recorded value of a controller setting, or null if never recorded.
+function ipsSetting(poolId, id) {
+  const e = _equipLast[id + '|' + poolId];
+  if (!e) return null;
+  const v = (e.to !== undefined && e.to !== '') ? e.to : e.value;
+  return (v === undefined || v === '') ? null : String(v);
+}
+function ipsSettingNum(poolId, id) {
+  const v = parseFloat(ipsSetting(poolId, id));
+  return isNaN(v) ? null : v;
 }
 
 // ─── CHIP HELPERS ────────────────────────────────────────────

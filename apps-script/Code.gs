@@ -21,7 +21,7 @@ const SUMMARY_EMAIL  = 'hello@flux-lounge.com';
 // Bump this whenever Code.gs is redeployed — every JSON response includes
 // it, so the front end (and you, via the browser console) can confirm the
 // live deployment is actually running this version.
-const BACKEND_VERSION = '2026-10-14-equipment-v1';
+const BACKEND_VERSION = '2026-10-14-equipment-v2';
 
 const POOL_LABELS = {
   'sl-hot':  'Social Lounge — Hot Soak',
@@ -516,7 +516,7 @@ function sendDailySummary(data) {
     const recAct  = val(row, 'recommended action');
     const actTkn  = val(row, 'action taken');
 
-    const statusColor = status.includes('attention') ? '#c0282e'
+    const statusColor = (status.includes('attention') || status.includes('Close')) ? '#c0282e'
                       : status.includes('adjustment') ? '#b85c00'
                       : '#006b5b';
 
@@ -630,17 +630,29 @@ function getEquipmentChecks() {
   const tz    = Session.getScriptTimeZone();
   const today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
   const sh    = ss.getSheetByName(EQUIP_SHEET);
-  if (!sh || sh.getLastRow() < 2) return jsonResponse({ success: true, today, last: {} });
+  if (!sh || sh.getLastRow() < 2) return jsonResponse({ success: true, today, last: {}, hist: {} });
 
   const vals = sh.getDataRange().getValues();
   const h    = vals[0].map(x => String(x).trim().toLowerCase());
   const c    = name => h.indexOf(name);
   const last = {};
+  // Recent history (oldest → newest) for items the tool trends:
+  // barrel levels (leak detection), controller status (repeat trips),
+  // and set levels (drift from where they started).
+  const HIST_IDS = { 'cl-barrel':1, 'acid-barrel':1, 'ips-status':1, 'orp-setlevel':1 };
+  const hist = {};
   for (let i = 1; i < vals.length; i++) {
     const r  = vals[i];
     const dt = r[c('saved at')] instanceof Date ? r[c('saved at')] : new Date(r[c('saved at')]);
     if (isNaN(dt.getTime())) continue;
     const key  = String(r[c('item id')]) + '|' + String(r[c('pool')] || '');
+    if (HIST_IDS[String(r[c('item id')])]) {
+      (hist[key] = hist[key] || []).push({
+        t: dt.getTime(), date: Utilities.formatDate(dt, tz, 'yyyy-MM-dd'),
+        result: String(r[c('result')] || ''), value: String(r[c('value')] || ''),
+        from: String(r[c('from')] || ''), to: String(r[c('to')] || ''), notes: String(r[c('notes')] || ''),
+      });
+    }
     const prev = last[key];
     if (prev && dt.getTime() < prev.t) continue;
     // A "Done/OK" entry for an item doesn't erase a value logged later the same day — latest wins.
@@ -654,7 +666,11 @@ function getEquipmentChecks() {
       by:     String(r[c('recorded by')] || ''),
     };
   }
-  return jsonResponse({ success: true, today, last });
+  Object.keys(hist).forEach(k => {
+    hist[k].sort((a, b) => a.t - b.t);
+    if (hist[k].length > 40) hist[k] = hist[k].slice(-40);
+  });
+  return jsonResponse({ success: true, today, last, hist });
 }
 
 // For the daily email: today's issues and controller adjustments.
@@ -676,9 +692,13 @@ function todaysEquipmentNotes(ss, tz, today) {
     const who    = String(r[c('recorded by')]);
     const where  = pool ? ` (${pool})` : '';
     if (result === 'Issue') {
-      out.push({ issue: true, text: `⚠ ${item}${where}: ${String(r[c('notes')])} — ${who}` });
-    } else if (result === 'Adjusted') {
-      out.push({ issue: false, text: `${item}${where}: ${r[c('from')]} → ${r[c('to')]} — ${who}` });
+      const v = String(r[c('value')] || '');
+      out.push({ issue: true, text: `⚠ ${item}${where}${v ? ' [' + v + ']' : ''}: ${String(r[c('notes')])} — ${who}` });
+    } else if (result === 'Adjusted' || result === 'Changed' || result === 'Recorded') {
+      const note  = String(r[c('notes')] || '');
+      const flag  = note.indexOf('⚑') >= 0;
+      const verb  = result === 'Recorded' ? `recorded as ${r[c('to')]}` : `${r[c('from')]} → ${r[c('to')]}`;
+      out.push({ issue: flag, text: `${flag ? '⚑ ' : ''}${item}${where}: ${verb}${note ? ' — ' + note : ''} — ${who}` });
     } else {
       okCount++;
     }

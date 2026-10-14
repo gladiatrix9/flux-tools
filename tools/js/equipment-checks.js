@@ -23,11 +23,12 @@ const EQUIP_POOL_NAMES = {
 const EQUIP_SCHEDULE = [
   { key:'Daily', days:1, who:'Host', title:'Daily — opening round', items:[
     { id:'ips-status', perPool:true, name:'IPS controller status', howto:'flashing',
+      picks:['Not in Auto','No Flow light','ORP flashing','pH flashing','ORP alert light','pH alert light','Display blank'],
       detail:'Red <strong>Auto</strong> light on · green <strong>Flow</strong> light on · displays <strong>not flashing</strong> · no red alert lights.' },
-    { id:'cl-barrel', name:'Chlorine barrel', value:{ label:'Level', unit:'%', ph:'50' },
-      detail:'At least ¼ full — tell Dini when it\'s under ¼. Suction line in the liquid, 2–3 in. above the bottom. Lid on.' },
-    { id:'acid-barrel', name:'Acid barrel', value:{ label:'Level', unit:'%', ph:'50' },
-      detail:'At least ¼ full — tell Dini when it\'s under ¼. Suction line in the liquid, 2–3 in. above the bottom. Lid on.' },
+    { id:'cl-barrel', name:'Chlorine barrel', value:{ label:'Level', unit:'%', ph:'50' }, usage:true,
+      detail:'Estimate how full it is (%) — the tool compares with past readings, and <strong>using more than usual is an early sign of a leak</strong>. Tell Dini when it\'s under ¼. Suction line in the liquid, 2–3 in. above the bottom. Lid on. Refilled it? Enter the new level and note "refilled".' },
+    { id:'acid-barrel', name:'Acid barrel', value:{ label:'Level', unit:'%', ph:'50' }, usage:true,
+      detail:'Estimate how full it is (%) — compared with past readings like the chlorine barrel. Tell Dini when it\'s under ¼. Suction line in the liquid, 2–3 in. above the bottom. Lid on.' },
     { id:'feed-lines', name:'Feed pumps & tubing', howto:'feedCheck',
       detail:'No drips or chemical inside the Stenner pumps\' clear covers. Tubing to every injection point not kinked, cracked, crusted with white crystals, or full of air.' },
     { id:'circulation', name:'Pumps, filters & UV',
@@ -85,7 +86,9 @@ function equipBadge(sec, id, pool) {
   const when = d === 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago';
   const by = e.by ? ' · ' + e.by : '';
   const res = e.result === 'Issue' ? ' · <strong>issue</strong>' : '';
-  if (!sec.days) return '<span class="eq-badge info">Last: ' + when + (e.value ? ' · ' + e.value + ' psi' : '') + by + '</span>';
+  const unit = id === 'orp-setlevel' ? ' mV' : ' psi';
+  const shown = id === 'orp-setlevel' ? (e.to || e.value) : e.value;
+  if (!sec.days) return '<span class="eq-badge info">Last: ' + when + (shown ? ' · ' + shown + unit : '') + by + '</span>';
   let cls = 'ok', label = 'Done ' + when;
   if (d >= sec.days * 1.5 && sec.days > 1) { cls = 'over'; label = 'Overdue · last ' + when; }
   else if (d >= sec.days)                  { cls = 'due';  label = 'Due · last ' + when; }
@@ -120,7 +123,14 @@ function equipRender() {
           ? '<span class="eq-val"><input type="number" inputmode="decimal" placeholder="' + it.value.ph + '" value="' + (s.value || '') + '"' +
               ' oninput="equipSetVal(\'' + k + '\',this.value)">' + it.value.unit + '</span>'
           : '';
-        const fnote = (it.id === 'filter-psi' && s.value) ? '<div class="eq-fnote">' + equipFilterNote(pool, s.value) + '</div>' : '';
+        const rn = equipRowNote(it, pool, s);
+        const fnote = rn ? '<div class="eq-fnote' + (rn.indexOf('⚠') === 0 ? ' warn' : '') + '">' + rn + '</div>' : '';
+        const picks = (it.picks && s.result === 'Issue')
+          ? '<div class="eq-picks">' + it.picks.map(function(pk) {
+              const on = (s.picks || []).indexOf(pk) >= 0;
+              return '<button class="eq-pick' + (on ? ' on' : '') + '" onclick="equipTogglePick(\'' + k + '\',\'' + pk + '\')">' + pk + '</button>';
+            }).join('') + '</div>'
+          : '';
         return '<div class="eq-row' + (s.result === 'Issue' ? ' is-issue' : '') + '">' +
           '<div class="eq-row-main">' +
             (pool ? '<span class="eq-pool">' + EQUIP_POOL_NAMES[pool] + '</span>' : '') +
@@ -129,7 +139,7 @@ function equipRender() {
           '<div class="eq-row-ctl">' + valIn +
             '<button class="eq-btn ok' + (s.result === okLabel ? ' on' : '') + '" onclick="equipSetRes(\'' + k + '\',\'' + okLabel + '\')">' + okLabel + '</button>' +
             '<button class="eq-btn issue' + (s.result === 'Issue' ? ' on' : '') + '" onclick="equipSetRes(\'' + k + '\',\'Issue\')">Issue</button>' +
-          '</div>' + fnote +
+          '</div>' + picks + fnote +
           (s.result === 'Issue'
             ? '<input class="eq-note" placeholder="What\'s wrong? (required)" value="' + (s.notes || '').replace(/"/g,'&quot;') + '" oninput="equipSetNote(\'' + k + '\',this.value)">'
             : '') +
@@ -155,7 +165,7 @@ function equipRender() {
 function equipRenderHowto() {
   const el = document.getElementById('equip-howto');
   if (!el) return;
-  el.innerHTML = ['phCal','orpSet','feedCheck','flashing','pauseFeed'].map(function(k) {
+  el.innerHTML = ['readSettings','phCal','orpSet','feedCheck','flashing','pauseFeed'].map(function(k) {
     const h = IPS_HOWTO[k];
     return '<details class="hw-card"><summary>' + h.title + '</summary><div class="hw-body">' + h.html + '</div></details>';
   }).join('');
@@ -169,15 +179,84 @@ function equipSetRes(k, res) {
 function equipSetVal(k, v) {
   const s = _equipSel[k] = _equipSel[k] || {};
   s.value = v;
-  // Live filter comparison without losing input focus
-  if (k.indexOf('filter-psi|') === 0) {
-    const row = document.activeElement && document.activeElement.closest('.eq-row');
-    if (row) {
-      let n = row.querySelector('.eq-fnote');
-      if (!n) { n = document.createElement('div'); n.className = 'eq-fnote'; row.querySelector('.eq-row-ctl').after(n); }
-      n.textContent = equipFilterNote(k.split('|')[1], v);
-    }
+  // Live comparison note, without re-rendering (keeps input focus)
+  const id = k.split('|')[0], pool = k.split('|')[1];
+  const it = equipItem(id);
+  const row = document.activeElement && document.activeElement.closest('.eq-row');
+  if (it && row) {
+    const txt = equipRowNote(it, pool, s);
+    let n = row.querySelector('.eq-fnote');
+    if (!n) { n = document.createElement('div'); n.className = 'eq-fnote'; row.querySelector('.eq-row-ctl').after(n); }
+    n.textContent = txt;
+    n.className = 'eq-fnote' + (txt.indexOf('⚠') === 0 ? ' warn' : '');
   }
+}
+function equipTogglePick(k, pk) {
+  const s = _equipSel[k] = _equipSel[k] || {};
+  s.picks = s.picks || [];
+  const i = s.picks.indexOf(pk);
+  if (i >= 0) s.picks.splice(i, 1); else s.picks.push(pk);
+  equipRender();
+}
+function equipItem(id) {
+  for (const sec of EQUIP_SCHEDULE) for (const it of sec.items) if (it.id === id) return it;
+  return null;
+}
+
+// ─── TREND NOTES ───────────────────────────────────────────────
+function equipDayDiff(a, b) {
+  return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
+}
+
+function equipRowNote(it, pool, s) {
+  if (it.id === 'filter-psi' && s.value) return equipFilterNote(pool, s.value);
+  if (it.usage && s.value !== undefined && s.value !== '') return equipUsageNote(it.id, s.value);
+  if (it.id === 'ips-status') return equipRepeatTrip(pool, s.picks || []);
+  return '';
+}
+
+// Barrel level vs. recent usage. A leak shows up as the barrel dropping
+// faster than normal while FC isn't rising.
+function equipUsageNote(id, val) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return '';
+  const h = (_equipHist[equipKey(id, '')] || []).filter(x => x.value !== '' && !isNaN(parseFloat(x.value)));
+  if (!h.length) return 'First reading — the tool will start comparing from tomorrow.';
+  const rates = [];
+  for (let i = 1; i < h.length; i++) {
+    const d = equipDayDiff(h[i-1].date, h[i].date);
+    const drop = parseFloat(h[i-1].value) - parseFloat(h[i].value);
+    if (d >= 1 && drop >= 0) rates.push(drop / d);      // skip refills
+  }
+  const prev = h[h.length - 1], pv = parseFloat(prev.value);
+  const d = equipDaysSince(prev.date);
+  if (v > pv) return 'Up from ' + pv + '% — refilled? Add a note if so.';
+  if (!d || d < 1) return '';
+  const rate = Math.round(((pv - v) / d) * 10) / 10;
+  const since = d === 1 ? 'yesterday' : d + ' days ago';
+  if (rates.length < 5) return 'Down ' + (pv - v) + '% since ' + since + '. (Normal usage is learned after about a week of readings.)';
+  const recent = rates.slice(-14).sort((a, b) => a - b);
+  const usual  = Math.round(recent[Math.floor(recent.length / 2)] * 10) / 10;
+  if (rate > Math.max(usual * 1.75, usual + 5)) {
+    return '⚠ Down ' + rate + '% per day since ' + since + ' — usually about ' + usual + '% per day. Possible leak: check for puddles or a bleach/acid smell in the pump room, drips inside the Stenner covers, wet or crusty tubing and fittings. Mark Issue and note what you found (busy day, shock dose, refill spill, etc.).';
+  }
+  return 'Down ' + rate + '% per day since ' + since + ' (usual ~' + usual + '%) — normal.';
+}
+
+// A flashing display that comes back within 2 days means something keeps
+// tripping the overfeed timer — don't just reset it.
+function equipRepeatTrip(pool, picks) {
+  const flashing = picks.filter(p => p.indexOf('flashing') >= 0 || p.indexOf('alert light') >= 0);
+  if (!flashing.length) return '';
+  const h = _equipHist[equipKey('ips-status', pool)] || [];
+  const repeat = flashing.filter(p => h.some(x => {
+    const dd = equipDaysSince(x.date);
+    return dd !== null && dd <= 2 && (x.value || '').indexOf(p) >= 0;
+  }));
+  if (!repeat.length) {
+    return 'Follow the steps above to clear it, then check the feed system (barrel, Stenner pump, tubing) for why it tripped.';
+  }
+  return '⚠ ' + repeat.join(' + ') + ' again within 2 days. <strong>Don\'t just reset it</strong> — something keeps stopping the feed. Look for a leak or air in the tubing, an empty barrel, or a pump not turning. Dose by hand meanwhile and flag to Dini.';
 }
 function equipSetNote(k, v) {
   const s = _equipSel[k] = _equipSel[k] || {};
@@ -199,21 +278,33 @@ async function equipSave(si) {
   if (!staff) { status.textContent = 'Select your name at the top first.'; status.className = 'eq-save-status err'; return; }
 
   const entries = [];
-  let missingNote = false;
+  let missingNote = false, missingValue = false, usageNotIssue = false;
   sec.items.forEach(function(it) {
     (it.perPool ? EQUIP_POOLS : ['']).forEach(function(pool) {
       const s = _equipSel[equipKey(it.id, pool)];
       if (!s || !s.result) return;
       if (s.result === 'Issue' && !(s.notes || '').trim()) missingNote = true;
       let notes = s.notes || '';
-      if (it.id === 'filter-psi' && s.value) {
-        const fn = equipFilterNote(pool, s.value);
-        if (fn.indexOf('⚠') === 0) notes = (notes ? notes + ' — ' : '') + fn;
+      let value = s.value || '';
+      if (it.picks && s.result === 'Issue') value = (s.picks || []).join(', ');
+      const rn = equipRowNote(it, pool, Object.assign({}, s, { value: it.picks ? undefined : s.value }));
+      if (rn.indexOf('⚠') === 0) {
+        if (it.usage && s.result !== 'Issue') { usageNotIssue = true; return; }
+        const plain = rn.replace(/<[^>]+>/g, '').replace(/^⚠\s*/, '');
+        notes = (notes ? notes + ' — ' : '') + '⚑ ' + plain.split('.')[0];
+      }
+      if (it.record && s.result !== 'Issue') {
+        if (!s.value) { missingValue = true; return; }
+        entries.push({ frequency: sec.key, item_id: it.id, item: it.name, pool: pool,
+                       result: 'Recorded', value: s.value, from: '', to: s.value, notes: notes });
+        return;
       }
       entries.push({ frequency: sec.key, item_id: it.id, item: it.name, pool: pool,
-                     result: s.result, value: s.value || '', notes: notes });
+                     result: s.result, value: value, notes: notes });
     });
   });
+  if (usageNotIssue) { status.textContent = 'A barrel dropped faster than usual — mark it Issue and note what you checked.'; status.className = 'eq-save-status err'; return; }
+  if (missingValue) { status.textContent = 'Enter the set level you read on the controller.'; status.className = 'eq-save-status err'; return; }
   if (missingNote) { status.textContent = 'Add a note for each issue.'; status.className = 'eq-save-status err'; return; }
   if (!entries.length) { status.textContent = 'Tap OK / Done or Issue on at least one item.'; status.className = 'eq-save-status err'; return; }
 
@@ -255,11 +346,15 @@ function equipRecordLocal(staff, entries) {
     const d = new Date();
     _equipToday = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   }
+  const HIST_IDS = { 'cl-barrel':1, 'acid-barrel':1, 'ips-status':1, 'orp-setlevel':1 };
   entries.forEach(function(e) {
-    _equipLast[equipKey(e.item_id, e.pool)] = {
-      date: _equipToday, result: e.result, value: e.value || '', from: e.from || '', to: e.to || '', by: staff || '' };
+    const k = equipKey(e.item_id, e.pool);
+    const rec = { date: _equipToday, result: e.result, value: e.value || '', from: e.from || '', to: e.to || '', by: staff || '', notes: e.notes || '' };
+    _equipLast[k] = rec;
+    if (HIST_IDS[e.item_id]) (_equipHist[k] = _equipHist[k] || []).push(rec);
   });
   equipRender();
+  equipRenderSettings();
 }
 
 // ─── LOAD ──────────────────────────────────────────────────────
@@ -269,8 +364,10 @@ async function fetchEquipmentChecks() {
     const data = await res.json();
     if (!data.success) return;
     _equipLast  = data.last || {};
+    _equipHist  = data.hist || {};
     _equipToday = data.today || '';
     equipRender();
+    equipRenderSettings();
     // ORP set level / guardrail depend on this — refresh any pool in progress.
     EQUIP_POOLS.forEach(function(pid) {
       const st = (typeof _wizState !== 'undefined') && _wizState[pid];
@@ -284,6 +381,122 @@ async function fetchEquipmentChecks() {
   }
 }
 
+
+
+
+// ══════ IPS CONTROLLER SETTINGS ═══════════════════════════════
+// Record each controller's settings once (starting point), then whenever
+// anything changes. Daily-test pH calibrations and ORP set-level changes
+// are recorded automatically from the Log tab.
+const _setSel = {};   // poolId → { settingId: typedValue, note }
+
+function equipSettingsSummary(pid) {
+  let latest = null, missing = 0;
+  IPS_SETTINGS.forEach(function(x) {
+    const e = _equipLast[x.id + '|' + pid];
+    if (!e) { missing++; return; }
+    if (!latest || e.date > latest.date) latest = e;
+  });
+  if (missing === IPS_SETTINGS.length) return '<span class="eq-badge due">Not recorded yet</span>';
+  const d = equipDaysSince(latest.date);
+  const when = d === 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago';
+  return (missing ? '<span class="eq-badge due">' + missing + ' not recorded</span> ' : '') +
+         '<span class="eq-badge info">Last change ' + when + (latest.by ? ' · ' + latest.by : '') + '</span>';
+}
+
+function equipRenderSettings() {
+  const el = document.getElementById('equip-settings');
+  if (!el) return;
+  const open = {};
+  el.querySelectorAll('details[data-pid]').forEach(function(d) { open[d.dataset.pid] = d.open; });
+  el.innerHTML = EQUIP_POOLS.map(function(pid) {
+    const sel = _setSel[pid] || {};
+    const groups = ['pH', 'ORP1'].map(function(g) {
+      const fields = IPS_SETTINGS.filter(x => x.grp === g).map(function(x) {
+        const known = ipsSetting(pid, x.id);
+        const val = sel[x.id] !== undefined ? sel[x.id] : (known !== null ? known : '');
+        const changed = sel[x.id] !== undefined && String(sel[x.id]) !== String(known ?? '');
+        return '<label class="eq-set-field' + (changed ? ' changed' : '') + '"><span>' + x.label + '</span>' +
+          '<input ' + (x.text ? 'type="text"' : 'type="number" step="' + x.step + '"') +
+          ' placeholder="—" value="' + String(val).replace(/"/g, '&quot;') + '"' +
+          ' oninput="equipSetSetting(\'' + pid + '\',\'' + x.id + '\',this.value)">' +
+          '<em>' + (x.unit ? x.unit + ' · ' : '') + 'factory ' + x.def + '</em></label>';
+      }).join('');
+      return '<div class="eq-set-grp"><div class="eq-set-grp-name">' + g + '</div>' + fields + '</div>';
+    }).join('');
+    return '<details class="hw-card eq-set-card" data-pid="' + pid + '"' + (open[pid] ? ' open' : '') + '>' +
+      '<summary>' + EQUIP_POOL_NAMES[pid] + ' ' + equipSettingsSummary(pid) + '</summary>' +
+      '<div class="hw-body">' + groups +
+        '<input class="eq-note" placeholder="Why changed? (required for changes, not for first recording)" value="' + (sel.note || '').replace(/"/g, '&quot;') + '"' +
+        ' oninput="equipSetSetting(\'' + pid + '\',\'note\',this.value)">' +
+        '<div class="eq-save-row"><span class="eq-save-status" id="eq-set-status-' + pid + '"></span>' +
+          '<button class="save-btn" id="eq-set-save-' + pid + '" onclick="equipSaveSettings(\'' + pid + '\')">Save settings</button></div>' +
+      '</div></details>';
+  }).join('');
+}
+
+function equipSetSetting(pid, id, v) {
+  _setSel[pid] = _setSel[pid] || {};
+  _setSel[pid][id] = v;
+}
+
+async function equipSaveSettings(pid) {
+  const status = document.getElementById('eq-set-status-' + pid);
+  const btn    = document.getElementById('eq-set-save-' + pid);
+  const staff  = equipStaff();
+  const say = (t, cls) => { status.textContent = t; status.className = 'eq-save-status ' + (cls || ''); };
+  if (!staff) return say('Select your name at the top first.', 'err');
+  const sel  = _setSel[pid] || {};
+  const note = (sel.note || '').trim();
+  const entries = [];
+  let changes = 0;
+  IPS_SETTINGS.forEach(function(x) {
+    if (sel[x.id] === undefined) return;
+    const v = String(sel[x.id]).trim();
+    const known = ipsSetting(pid, x.id);
+    if (v === '' || v === String(known ?? '')) return;
+    const isChange = known !== null;
+    if (isChange) changes++;
+    let n = isChange ? note : '';
+    if (/over timer/i.test(x.label) && /^off$/i.test(v)) {
+      n = '⚑ Over Timer OFF — removes the leak/overfeed protection (and voids NSF certification per the IPS manual)' + (n ? ' — ' + n : '');
+    }
+    if (x.id === 'orp-setlevel' && isChange) {
+      const flag = orpDriftFlag(pid, parseFloat(known), parseFloat(v));
+      if (flag) n = '⚑ ' + flag + (n ? ' — ' + n : '');
+    }
+    entries.push({ frequency: 'Settings', item_id: x.id, item: 'IPS ' + x.grp + ' ' + x.label, pool: pid,
+                   result: isChange ? 'Changed' : 'Recorded', value: v, from: isChange ? known : '', to: v, notes: n });
+  });
+  if (!entries.length) return say('Nothing new to save — type the values you see on the controller.', 'err');
+  if (changes && !note) return say('Add a note saying why the setting changed.', 'err');
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const done = function() {
+    equipRecordLocal(staff, entries);
+    delete _setSel[pid];
+    equipRenderSettings();
+    const s2 = document.getElementById('eq-set-status-' + pid);
+    if (s2) { s2.textContent = 'Saved ' + entries.length + ' setting' + (entries.length > 1 ? 's' : '') + ' ✓'; s2.className = 'eq-save-status ok'; }
+  };
+  try {
+    const res  = await fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'saveEquipmentChecks', staff: staff, entries: entries }) });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Save failed');
+    done();
+  } catch (e) {
+    try {
+      const c = await (await fetch(SCRIPT_URL + '?action=getEquipmentChecks')).json();
+      const f = entries[0], last = c.last && c.last[equipKey(f.item_id, f.pool)];
+      if (c.success && last && last.date === c.today && String(last.to) === String(f.to)) { _equipToday = c.today; done(); return; }
+    } catch (e2) {}
+    btn.disabled = false; btn.textContent = 'Error — try again';
+    say('Not saved. Check your connection.', 'err');
+  }
+}
+
+// ─── INIT (last, so every declaration above exists) ─────────────
 (function initEquipment() {
   const sel = document.getElementById('equip-staff');
   const main = document.getElementById('session-staff');
@@ -293,6 +506,7 @@ async function fetchEquipmentChecks() {
     main.addEventListener('change', function() { if (sel.value !== main.value) sel.value = main.value; });
   }
   equipRender();
+  equipRenderSettings();
   equipRenderHowto();
   fetchEquipmentChecks();
 })();

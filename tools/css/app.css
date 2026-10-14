@@ -666,3 +666,18 @@ footer { background: var(--navy); color: rgba(255,255,255,0.3); text-align: cent
   .tabs::-webkit-scrollbar { display: none; }
   .tab-btn { flex: 0 0 auto; padding: 0.8rem 1rem; letter-spacing: 0.08em; white-space: nowrap; }
 }
+
+/* ─── EQUIPMENT: quick picks, trend notes, controller settings ─── */
+.eq-picks { width: 100%; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.eq-pick { border: 1.5px solid var(--alert); background: white; color: var(--alert); border-radius: 14px; padding: 0.2rem 0.6rem; font-size: 0.72rem; cursor: pointer; }
+.eq-pick.on { background: var(--alert); color: white; }
+.eq-fnote.warn { color: var(--alert); font-weight: 500; }
+.eq-set-card > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.eq-set-grp { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.5rem; padding: 0.6rem 0 0.2rem; }
+.eq-set-grp-name { width: 100%; font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.eq-set-field { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.72rem; color: var(--text); }
+.eq-set-field input { width: 84px; border: 1.5px solid var(--border); border-radius: 6px; padding: 0.3rem 0.4rem; font-family: 'DM Mono', monospace; font-size: 0.82rem; }
+.eq-set-field em { font-style: normal; font-size: 0.62rem; color: var(--muted); }
+.eq-set-field.changed input { border-color: var(--warn); background: var(--warn-bg); }
+.eq-set-card .eq-note { border-color: var(--border); margin-top: 0.6rem; }
+.wiz-adj-note { flex: 1; border: 1.5px solid var(--border); border-radius: 6px; padding: 0.35rem 0.5rem; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; }
