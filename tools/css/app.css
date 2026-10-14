@@ -606,3 +606,63 @@ footer { background: var(--navy); color: rgba(255,255,255,0.3); text-align: cent
 .wiz-chtds-note { font-family: 'DM Mono', monospace; font-size: 0.58rem;
   color: var(--muted); font-style: italic; padding: 0.25rem 0 0.1rem;
   border-bottom: 1px solid var(--border); }
+
+/* ─── IPS HOW-TO (inline in recommendations + Equipment tab) ─── */
+.hw-inline { margin-top: 0.35rem; color: var(--text); }
+.hw-inline > summary { cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.66rem; letter-spacing: 0.04em; color: var(--navy); text-decoration: underline; list-style: none; }
+.hw-inline > summary::-webkit-details-marker { display: none; }
+.hw-inline[open] { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.7rem; }
+.hw-steps { margin: 0.35rem 0 0.35rem 1.1rem; display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.78rem; line-height: 1.55; }
+.hw-list  { margin: 0.35rem 0 0.35rem 1rem; display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.8rem; line-height: 1.55; }
+.hw-note  { font-size: 0.78rem; line-height: 1.55; color: var(--muted); margin: 0.25rem 0; }
+.hw-warn  { font-size: 0.78rem; line-height: 1.5; background: var(--warn-bg); color: var(--warn); border-radius: 6px; padding: 0.35rem 0.55rem; margin: 0.35rem 0; }
+.hw-rules { font-size: 0.78rem; line-height: 1.5; background: var(--light-blue); color: var(--navy); border-radius: 6px; padding: 0.35rem 0.55rem; margin: 0.35rem 0; }
+.hw-card { background: white; border: 1.5px solid var(--border); border-radius: 11px; margin-bottom: 0.6rem; overflow: hidden; }
+.hw-card > summary { cursor: pointer; padding: 0.75rem 1rem; font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--navy); font-weight: 500; }
+.hw-card .hw-body { padding: 0 1rem 0.8rem; border-top: 1px solid var(--border); }
+
+/* ─── REVIEW: IPS ADJUSTMENTS ─── */
+.wiz-adj { margin-top: 0.65rem; border: 1.5px solid var(--border); border-radius: 8px; background: white; }
+.wiz-adj > summary { cursor: pointer; padding: 0.5rem 0.7rem; font-family: 'DM Mono', monospace; font-size: 0.68rem; letter-spacing: 0.05em; color: var(--navy); }
+.wiz-adj-badge { background: var(--warn-bg); color: var(--warn); border-radius: 4px; padding: 0.05rem 0.35rem; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; margin-left: 0.3rem; }
+.wiz-adj-hint { font-size: 0.72rem; color: var(--muted); padding: 0 0.7rem 0.4rem; }
+.wiz-adj-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; font-size: 0.75rem; color: var(--text); }
+.wiz-adj-auto { display: flex; align-items: flex-start; gap: 0.45rem; padding: 0.45rem 0.7rem 0.6rem; font-size: 0.75rem; line-height: 1.45; }
+.wiz-adj-err { display: none; margin: 0 0.7rem 0.6rem; font-size: 0.75rem; color: var(--alert); background: var(--alert-bg); border-radius: 6px; padding: 0.35rem 0.55rem; }
+
+/* ─── EQUIPMENT TAB ─── */
+.eq-staff-bar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.5rem; font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.05em; }
+.eq-staff-bar select { min-width: 150px; border: 1.5px solid var(--border); border-radius: 6px; padding: 0.32rem 0.65rem; font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--text); background: var(--cream); }
+.eq-who { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.eq-item { background: white; border: 1.5px solid var(--border); border-radius: 11px; margin-bottom: 0.7rem; overflow: hidden; }
+.eq-item-head { padding: 0.65rem 1rem 0.2rem; }
+.eq-item-name { font-weight: 600; font-size: 0.88rem; color: var(--navy); }
+.eq-item-detail { padding: 0 1rem 0.6rem; font-size: 0.8rem; line-height: 1.55; color: var(--text); }
+.eq-row { border-top: 1px solid var(--border); padding: 0.5rem 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.eq-row.is-issue { background: var(--alert-bg); }
+.eq-row-main { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; flex: 1; min-width: 180px; }
+.eq-pool { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--text); min-width: 140px; }
+.eq-row-ctl { display: flex; align-items: center; gap: 0.4rem; }
+.eq-val { display: flex; align-items: center; gap: 0.25rem; font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+.eq-val input { width: 62px; border: 1.5px solid var(--border); border-radius: 6px; padding: 0.3rem 0.4rem; font-family: 'DM Mono', monospace; font-size: 0.8rem; }
+.eq-btn { border: 1.5px solid var(--border); background: white; border-radius: 6px; padding: 0.35rem 0.75rem; font-family: 'DM Mono', monospace; font-size: 0.7rem; cursor: pointer; color: var(--text); }
+.eq-btn.ok.on    { background: var(--ok); border-color: var(--ok); color: white; }
+.eq-btn.issue.on { background: var(--alert); border-color: var(--alert); color: white; }
+.eq-note { width: 100%; border: 1.5px solid var(--alert); border-radius: 6px; padding: 0.4rem 0.6rem; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; }
+.eq-fnote { width: 100%; font-size: 0.74rem; color: var(--muted); }
+.eq-badge { font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.04em; padding: 0.12rem 0.45rem; border-radius: 4px; }
+.eq-badge.ok    { background: var(--ok-bg); color: var(--ok); }
+.eq-badge.due   { background: var(--warn-bg); color: var(--warn); }
+.eq-badge.over, .eq-badge.issue { background: var(--alert-bg); color: var(--alert); }
+.eq-badge.info  { background: var(--cream); color: var(--muted); }
+.eq-save-row { display: flex; justify-content: flex-end; align-items: center; gap: 0.8rem; margin-top: 0.3rem; }
+.eq-save-status { font-size: 0.75rem; color: var(--muted); }
+.eq-save-status.ok  { color: var(--ok); }
+.eq-save-status.err { color: var(--alert); }
+
+/* Five tabs: let the bar scroll sideways on narrow screens instead of crushing. */
+@media (max-width: 680px) {
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn { flex: 0 0 auto; padding: 0.8rem 1rem; letter-spacing: 0.08em; white-space: nowrap; }
+}

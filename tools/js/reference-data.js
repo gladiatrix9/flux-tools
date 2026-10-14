@@ -36,19 +36,54 @@ function fmtLiquid(floz) {
 // 1 tbsp baking soda ≈ 0.49 oz by weight
 
 
-// ─── RANGES (pending Lucid confirmation for hot soak Cl) ─────
+// ─── RANGES ──────────────────────────────────────────────────
+// free.ok = the comfortable range (no action). Below warnLow = urgent
+// manual dosing + feed check. Above warnHigh = pause the feed.
+// orp = how the IPS display reading is judged; bands sit around the
+// commissioning set levels (spa 750 mV, plunge 700 mV — O&M manual).
 function getRanges(type) {
   return {
     temp: type === 'hot'
       ? { okLow:100, okHigh:106, warnLow:98,  warnHigh:108 }
       : { okLow:45,  okHigh:58,  warnLow:40,  warnHigh:65  },
     free: type === 'hot'
-      ? { okLow:2.5, okHigh:3.5, warnLow:2,   warnHigh:5   }
-      : { okLow:2,   okHigh:3,   warnLow:1,   warnHigh:4   },
+      ? { okLow:2.5, okHigh:5,   warnLow:2,   warnHigh:6   }
+      : { okLow:1.5, okHigh:4,   warnLow:1,   warnHigh:5   },
     combined: { warnHigh: 0.5 },
     ph:  { okLow:7.4, okHigh:7.6, warnLow:7.2, warnHigh:7.8 },
     alk: { okLow:80,  okHigh:100, warnLow:60,  warnHigh:120 },
+    orp: type === 'hot'
+      ? { okLow:700, okHigh:800, warnLow:650, warnHigh:850 }
+      : { okLow:650, okHigh:750, warnLow:600, warnHigh:800 },
   };
+}
+
+// ─── IPS M920 ORP1 SET LEVEL — host adjustment guardrails ────
+// default = commissioning set level (O&M manual, "Setpoints").
+// Hosts move it 5 mV at a time, once per pool per day, and never
+// outside min/max without Dini.
+const ORP_SET = {
+  hot:  { default: 750, min: 700, max: 800, step: 5 },
+  cold: { default: 700, min: 650, max: 750, step: 5 },
+};
+
+// pH difference (IPS display vs Taylor) that calls for a pH Cal.
+const PH_CAL_THRESHOLD = 0.2;
+
+// Latest Equipment Checks entries, keyed "itemId|poolId" — filled by
+// equipment-checks.js on load. Used for the once-a-day ORP guardrail
+// and to know the current ORP set level.
+let _equipLast = {};
+let _equipToday = '';
+
+function currentOrpSetLevel(poolId) {
+  const e = _equipLast['orp-setlevel|' + poolId];
+  const v = e ? parseFloat(e.to) : NaN;
+  return isNaN(v) ? null : v;
+}
+function orpAdjustedToday(poolId) {
+  const e = _equipLast['orp-setlevel|' + poolId];
+  return !!(e && _equipToday && e.date === _equipToday) ? e : null;
 }
 
 // ─── CHIP HELPERS ────────────────────────────────────────────

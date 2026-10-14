@@ -19,9 +19,24 @@ async function savePool(poolId) {
   const combD = g(`${poolId}-combined`);
   const alkD  = g(`${poolId}-alk`);
 
+  // IPS adjustments (pH Cal / ORP1 set level) — validated before saving.
+  const adjRes = (typeof wizCollectAdjustments === 'function') ? wizCollectAdjustments(poolId) : { entries: [] };
+  const adjErr = document.getElementById(`${poolId}-adj-err`);
+  if (adjRes.error) {
+    if (adjErr) { adjErr.textContent = adjRes.error; adjErr.style.display = 'block'; }
+    const det = adjErr && adjErr.closest('details'); if (det) det.open = true;
+    return;
+  }
+  if (adjErr) { adjErr.textContent = ''; adjErr.style.display = 'none'; }
+
   const actionsEl  = document.getElementById(`${poolId}-actions`);
+  // Strip the collapsible how-to steps so only the recommendation is saved.
   const recActions = actionsEl
-    ? Array.from(actionsEl.querySelectorAll('.action-item')).map(el => el.textContent.trim()).join(' | ')
+    ? Array.from(actionsEl.querySelectorAll('.action-item')).map(el => {
+        const c = el.cloneNode(true);
+        c.querySelectorAll('details').forEach(d => d.remove());
+        return c.textContent.replace(/\s+/g, ' ').trim();
+      }).join(' | ')
     : '';
 
   const lsiEl   = document.getElementById(`${poolId}-lsi`);
@@ -46,6 +61,8 @@ async function savePool(poolId) {
     tds:                 document.getElementById(`${poolId}-tds`)?.value || '',
 
     action_taken:       g(`${poolId}-action-taken`),
+    ips_ph:             g(`${poolId}-ipsph`),
+    adjustments:        adjRes.entries || [],
   };
 
   const btn = document.getElementById(`${poolId}-save-btn`);
@@ -62,6 +79,7 @@ async function savePool(poolId) {
       if (btn) { btn.textContent = 'Saved ✓'; btn.className = 'save-btn saved'; }
       try { localStorage.removeItem('flux-wiz-' + poolId); } catch(e) {}
       markPoolSaved(poolId);
+      if (typeof equipRecordLocal === 'function') equipRecordLocal(payload.staff, payload.adjustments);
 
       // If this save's CH/TDS differ from what we last loaded for Pool
       // State, the backend just recorded a 'daily-override' — mirror that
@@ -98,6 +116,7 @@ async function savePool(poolId) {
       if (cdata.success && cdata.status && cdata.status[poolId] && cdata.status[poolId].saved) {
         if (btn) { btn.textContent = 'Saved ✓'; btn.className = 'save-btn saved'; }
         markPoolSaved(poolId);
+        if (typeof equipRecordLocal === 'function') equipRecordLocal(payload.staff, payload.adjustments);
         setTimeout(() => {
           if (btn) { btn.textContent = 'Save to Sheet'; btn.className = 'save-btn'; btn.disabled = false; }
         }, 3000);
@@ -111,13 +130,8 @@ async function savePool(poolId) {
 
 // ─── TAB SWITCHING ───────────────────────────────────────────
 function switchTab(id) {
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active',
-      (i === 0 && id === 'howto')     ||
-      (i === 1 && id === 'log')       ||
-      (i === 2 && id === 'weekly')    ||
-      (i === 3 && id === 'reference')
-    );
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === id);
   });
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');

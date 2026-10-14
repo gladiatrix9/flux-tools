@@ -21,7 +21,7 @@ const SUMMARY_EMAIL  = 'hello@flux-lounge.com';
 // Bump this whenever Code.gs is redeployed — every JSON response includes
 // it, so the front end (and you, via the browser console) can confirm the
 // live deployment is actually running this version.
-const BACKEND_VERSION = '2026-06-19-poolstate-v2';
+const BACKEND_VERSION = '2026-10-14-equipment-v1';
 
 const POOL_LABELS = {
   'sl-hot':  'Social Lounge — Hot Soak',
@@ -55,6 +55,7 @@ function doGet(e) {
   if (action === 'getWeeklyParams')  return getWeeklyParams();
   if (action === 'getPoolState')     return getPoolState();
   if (action === 'getTodayStatus')   return getTodayStatus();
+  if (action === 'getEquipmentChecks') return getEquipmentChecks();
   return jsonResponse({ success: false, error: 'Unknown GET action' });
 }
 
@@ -65,6 +66,10 @@ function doPost(e) {
 
     if (action === 'saveWeeklyParams') return saveWeeklyParams(data);
     if (action === 'sendDailySummary') return sendDailySummary(data);
+    if (action === 'saveEquipmentChecks') {
+      const n = appendEquipRows(SpreadsheetApp.openById(SPREADSHEET_ID), data.staff, data.entries);
+      return jsonResponse({ success: true, saved: n });
+    }
 
     // Default: daily pool log save
     return saveDailyLog(data);
@@ -271,6 +276,9 @@ function saveDailyLog(data) {
   const now = new Date();
   const ts  = Utilities.formatDate(now, Session.getScriptTimeZone(), 'M/d/yyyy, h:mm:ss a');
 
+  // Add the "IPS pH" column the first time it's needed.
+  ensureHeader(logSheet, 'IPS pH');
+
   // Build the row dynamically based on the sheet's header row, so adding
   // or reordering columns (e.g. "Pool ID") doesn't silently misalign data.
   const header = logSheet.getDataRange().getValues()[0].map(h => String(h).trim().toLowerCase());
@@ -303,9 +311,15 @@ function saveDailyLog(data) {
   setCol(['recommended action'],     data.recommended_action  || '');
   setCol(['action taken'],           data.action_taken        || '');
   setCol(['pool id'],                data.pool_id             || '');
+  setCol(['ips ph'],                 data.ips_ph              || '');
   setCol(['saved at'],               ts);
 
   logSheet.appendRow(row);
+
+  // IPS adjustments made during this test (pH Cal, ORP1 set level)
+  if (data.adjustments && data.adjustments.length) {
+    appendEquipRows(ss, data.staff, data.adjustments);
+  }
 
   // ── Pool State: only write if this changes the on-file CH/TDS.
   if (data.pool_id && (data.calcium || data.tds)) {
@@ -535,6 +549,16 @@ function sendDailySummary(data) {
     if (actTkn) bodyText += `  Action taken: ${actTkn}\n`;
   });
 
+  // Equipment: today's issues and controller adjustments
+  const eq = todaysEquipmentNotes(ss, tz, today);
+  if (eq.length) {
+    bodyHtml += `<tr><td colspan="2" style="padding:12px 12px 4px;background:#f5ede6;"><strong style="font-size:14px;">Equipment &amp; controller</strong></td></tr>
+      <tr><td colspan="2" style="padding:4px 12px 10px;font-size:13px;color:#555;">${eq.map(function(x) {
+        return `<div style="margin:3px 0;${x.issue ? 'color:#c0282e;' : ''}">${x.text}</div>`;
+      }).join('')}</td></tr>`;
+    bodyText += `\nEquipment & controller\n` + eq.map(x => '  ' + x.text).join('\n') + '\n';
+  }
+
   const missing = poolOrder.filter(p => !byPool[p]);
   const missingNote = missing.length > 0
     ? `<p style="margin:16px 0 0;color:#b85c00;font-size:13px;">⚠ Not logged today: ${missing.map(p => POOL_LABELS[p]).join(', ')}</p>`
@@ -564,6 +588,111 @@ function sendDailySummary(data) {
   );
 
   return jsonResponse({ success: true });
+}
+
+// ─── EQUIPMENT CHECKS ────────────────────────────────────────
+// Sheet is created on first use. All text columns are Plain text so a
+// note starting with -, +, = or @ can't turn into a formula error.
+
+const EQUIP_SHEET   = 'Equipment Checks';
+const EQUIP_HEADERS = ['Saved At','Recorded By','Frequency','Item ID','Item','Pool','Result','Value','From','To','Notes'];
+
+function getEquipSheet(ss) {
+  let sh = ss.getSheetByName(EQUIP_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(EQUIP_SHEET);
+    sh.getRange(1, 1, 1, EQUIP_HEADERS.length).setValues([EQUIP_HEADERS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    sh.getRange(2, 2, sh.getMaxRows() - 1, EQUIP_HEADERS.length - 1).setNumberFormat('@');
+  }
+  return sh;
+}
+
+function appendEquipRows(ss, staff, entries) {
+  if (!entries || !entries.length) return 0;
+  const sh    = getEquipSheet(ss);
+  const now   = new Date();
+  const start = sh.getLastRow() + 1;
+  const n     = entries.length;
+  const s = v => (v === undefined || v === null) ? '' : String(v);
+  const text = entries.map(e => [s(staff), s(e.frequency), s(e.item_id), s(e.item), s(e.pool),
+                                 s(e.result), s(e.value), s(e.from), s(e.to), s(e.notes)]);
+  sh.getRange(start, 1, n, 1).setNumberFormat('M/d/yyyy h:mm:ss am/pm')
+    .setValues(entries.map(() => [now]));
+  sh.getRange(start, 2, n, EQUIP_HEADERS.length - 1).setNumberFormat('@').setValues(text);
+  return n;
+}
+
+// Latest entry per "itemId|pool" — drives Due/Overdue badges, filter PSI
+// comparison, current ORP1 set level and the once-a-day guardrail.
+function getEquipmentChecks() {
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const tz    = Session.getScriptTimeZone();
+  const today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const sh    = ss.getSheetByName(EQUIP_SHEET);
+  if (!sh || sh.getLastRow() < 2) return jsonResponse({ success: true, today, last: {} });
+
+  const vals = sh.getDataRange().getValues();
+  const h    = vals[0].map(x => String(x).trim().toLowerCase());
+  const c    = name => h.indexOf(name);
+  const last = {};
+  for (let i = 1; i < vals.length; i++) {
+    const r  = vals[i];
+    const dt = r[c('saved at')] instanceof Date ? r[c('saved at')] : new Date(r[c('saved at')]);
+    if (isNaN(dt.getTime())) continue;
+    const key  = String(r[c('item id')]) + '|' + String(r[c('pool')] || '');
+    const prev = last[key];
+    if (prev && dt.getTime() < prev.t) continue;
+    // A "Done/OK" entry for an item doesn't erase a value logged later the same day — latest wins.
+    last[key] = {
+      t:      dt.getTime(),
+      date:   Utilities.formatDate(dt, tz, 'yyyy-MM-dd'),
+      result: String(r[c('result')] || ''),
+      value:  String(r[c('value')]  || ''),
+      from:   String(r[c('from')]   || ''),
+      to:     String(r[c('to')]     || ''),
+      by:     String(r[c('recorded by')] || ''),
+    };
+  }
+  return jsonResponse({ success: true, today, last });
+}
+
+// For the daily email: today's issues and controller adjustments.
+function todaysEquipmentNotes(ss, tz, today) {
+  const sh = ss.getSheetByName(EQUIP_SHEET);
+  if (!sh || sh.getLastRow() < 2) return [];
+  const vals = sh.getDataRange().getValues();
+  const h = vals[0].map(x => String(x).trim().toLowerCase());
+  const c = name => h.indexOf(name);
+  const out = [];
+  let okCount = 0;
+  for (let i = 1; i < vals.length; i++) {
+    const r  = vals[i];
+    const dt = r[c('saved at')] instanceof Date ? r[c('saved at')] : new Date(r[c('saved at')]);
+    if (isNaN(dt.getTime()) || Utilities.formatDate(dt, tz, 'yyyy-MM-dd') !== today) continue;
+    const pool   = POOL_LABELS[String(r[c('pool')])] || '';
+    const item   = String(r[c('item')]);
+    const result = String(r[c('result')]);
+    const who    = String(r[c('recorded by')]);
+    const where  = pool ? ` (${pool})` : '';
+    if (result === 'Issue') {
+      out.push({ issue: true, text: `⚠ ${item}${where}: ${String(r[c('notes')])} — ${who}` });
+    } else if (result === 'Adjusted') {
+      out.push({ issue: false, text: `${item}${where}: ${r[c('from')]} → ${r[c('to')]} — ${who}` });
+    } else {
+      okCount++;
+    }
+  }
+  if (okCount) out.push({ issue: false, text: `${okCount} other check${okCount > 1 ? 's' : ''} OK.` });
+  return out;
+}
+
+// Appends a header to the first empty column if it isn't there yet.
+function ensureHeader(sheet, name) {
+  const lastCol = sheet.getLastColumn();
+  const hdr = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(x => String(x).trim().toLowerCase());
+  if (hdr.indexOf(name.toLowerCase()) >= 0) return;
+  sheet.getRange(1, lastCol + 1).setValue(name);
 }
 
 // ─── HELPER ──────────────────────────────────────────────────

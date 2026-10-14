@@ -18,7 +18,10 @@ const WIZ_STEPS = [
     instr:'<ol class="wiz-steps-ol"><li>Fill the large tube to the <strong>25 mL mark.</strong></li><li>Add <strong>2 drops R-0007,</strong> then <strong>5 drops R-0008.</strong></li><li>The sample will turn <strong>green.</strong></li><li>Add <strong>R-0009 drop by drop</strong> (hold dropper completely vertical), swirling after each drop, until the color changes to <strong>red.</strong></li><li>At the endpoint: add one confirming drop. If color holds, stop. If it returns to green, keep titrating.</li><li>Enter your drop count — drop count × 10 = ppm TA.</li></ol>' },
   { field:'orp',      label:'ORP',                 hint:'log from IPS M920 display',
     unit:'mV',    itype:'number',            imin:'0',   imax:'999',
-    instr:'<ol class="wiz-steps-ol"><li>Go to the <strong>IPS M920 controller display.</strong></li><li>Read the ORP value shown.</li><li>Enter the reading below.</li><li>If the reading looks significantly different from recent readings, flag to Dini after saving.</li></ol>' }
+    instr:'<ol class="wiz-steps-ol"><li>Go to this pool\'s <strong>IPS M920 controller</strong>.</li><li>Quick check: <strong>red Auto light on</strong>, <strong>green Flow light on</strong>, displays <strong>not flashing</strong>, no red alert lights. If anything is off, see "Display flashing / alert lights" on the Equipment tab.</li><li>Read the <strong>ORP</strong> number on the display and enter it below.</li></ol>' },
+  { field:'ipsph',    label:'IPS pH',              hint:'pH shown on the IPS M920 display',
+    unit:'',      itype:'number', istep:'0.1', imin:'6.0', imax:'8.4',
+    instr:'<ol class="wiz-steps-ol"><li>On the same <strong>IPS M920 controller</strong>, read the <strong>pH</strong> number on the display.</li><li>Enter it below. The tool compares it to your Taylor pH — if they differ by 0.2 or more it will ask you to calibrate the controller.</li></ol>' }
 ];
 
 const _wizState = {};
@@ -55,8 +58,9 @@ function applyOrpChip(pid, val) {
   const orpChip = document.getElementById(pid+'-orp-result');
   if (!orpChip || !val) return;
   const v = parseFloat(val);
-  const ok   = v >= 650 && v <= 750;
-  const warn = (v >= 600 && v < 650) || (v > 750 && v <= 800);
+  const r = getRanges(POOLS[pid].type).orp;
+  const ok   = v >= r.okLow && v <= r.okHigh;
+  const warn = !ok && v >= r.warnLow && v <= r.warnHigh;
   orpChip.className = ok ? 'result-chip ok' : warn ? 'result-chip warn' : 'result-chip alert';
   orpChip.innerHTML = `<span class="chip-dot"></span>${val} mV`;
 }
@@ -70,7 +74,7 @@ function wizResume(pid) {
       const sv = JSON.parse(r);
       _wizState[pid] = { step: sv.step||0, values: sv.values||{}, instrOpen:false };
       Object.entries(_wizState[pid].values).forEach(function(kv) {
-        if (kv[0] === 'actionTaken') return;
+        if (kv[0] === 'actionTaken' || kv[0] === 'adj') return;
         const el = document.getElementById(pid+'-'+kv[0]);
         if (el) el.value = kv[1];
       });
@@ -208,7 +212,8 @@ function wizRenderReview(pid) {
       '<textarea class="action-taken-input" id="'+pid+'-action-taken" rows="2"'+
         ' placeholder="Note what was done, or \'no action needed\'..."'+
         ' oninput="wizSaveAt(\''+pid+'\',this.value)">'+atVal+'</textarea>'+
-    '</div>';
+    '</div>'+
+    wizAdjBlock(pid);
 
   navEl.innerHTML =
     '<button class="wiz-btn-back" onclick="wizBack(\''+pid+'\')">&#8592; Back</button>'+
@@ -243,6 +248,75 @@ function wizOnInput(pid, field, val) {
 function wizSaveAt(pid, val) {
   if (_wizState[pid]) _wizState[pid].values.actionTaken = val;
   wizSaveLocal(pid);
+}
+
+// ── IPS ADJUSTMENTS (review screen) ──────────────────────────
+// Records pH calibrations and ORP1 set-level changes. Saved alongside the
+// daily log into the "Equipment Checks" sheet. Prefilled from the
+// recommendation when the tool asked for an adjustment.
+function wizAdjBlock(pid) {
+  const st   = _wizState[pid] || { values:{} };
+  const adj  = st.values.adj || {};
+  const hint = (typeof _calcHints !== 'undefined' && _calcHints[pid]) || {};
+  // What's shown is what gets logged: recommendation values are written
+  // into the saved state, and the host clears anything they didn't do.
+  if (st.values) {
+    st.values.adj = adj;
+    const seed = (k, h) => { if (adj[k] === undefined && h !== undefined) adj[k] = h; };
+    if (hint.phCal) { seed('phFrom', hint.phCal.from); seed('phTo', hint.phCal.to); }
+    if (hint.orp)   { seed('orpFrom', hint.orp.from);  seed('orpTo', hint.orp.to); }
+  }
+  const v = k => _wizEsc(adj[k] !== undefined ? adj[k] : '');
+  const open = hint.phCal || hint.orpRec || adj.phFrom || adj.phTo || adj.orpFrom || adj.orpTo;
+  const inp = (k, _h, step, ph) =>
+    '<input class="wiz-chtds-input" type="number" step="'+step+'" placeholder="'+ph+'" value="'+v(k)+'"'+
+    ' oninput="wizSaveAdj(\''+pid+'\',\''+k+'\',this.value)">';
+  return '<details class="wiz-adj"'+(open ? ' open' : '')+'>'+
+    '<summary>IPS controller adjustments'+(hint.phCal || hint.orpRec ? ' <span class="wiz-adj-badge">recommended</span>' : '')+'</summary>'+
+    '<div class="wiz-adj-hint">Filled in from the recommendation — <strong>clear anything you didn\'t actually change</strong> on the controller.</div>'+
+    '<div class="wiz-adj-row"><span>pH calibrated — IPS read</span>'+
+      inp('phFrom', hint.phCal && hint.phCal.from, '0.1', '7.6')+'<span>→ set to</span>'+
+      inp('phTo',   hint.phCal && hint.phCal.to,   '0.1', '7.4')+'</div>'+
+    '<div class="wiz-adj-row"><span>ORP1 set level — from</span>'+
+      inp('orpFrom', hint.orp && hint.orp.from, '5', '750')+'<span>→ to</span>'+
+      inp('orpTo',   hint.orp && hint.orp.to,   '5', '755')+'<span>mV</span></div>'+
+    '<label class="wiz-adj-auto"><input type="checkbox" id="'+pid+'-adj-auto"'+(adj.auto ? ' checked' : '')+
+      ' onchange="wizSaveAdj(\''+pid+'\',\'auto\',this.checked)"> The red <strong>Auto</strong> light is on (controller is dosing again)</label>'+
+    '<div class="wiz-adj-err" id="'+pid+'-adj-err"></div>'+
+  '</details>';
+}
+
+function wizSaveAdj(pid, key, val) {
+  const st = _wizState[pid]; if (!st) return;
+  st.values.adj = st.values.adj || {};
+  st.values.adj[key] = val;
+  wizSaveLocal(pid);
+}
+
+// Returns { entries, error } for savePool().
+function wizCollectAdjustments(pid) {
+  const st   = _wizState[pid] || { values:{} };
+  const adj  = st.values.adj || {};
+  const has = x => x !== undefined && x !== null && String(x).trim() !== '';
+  const entries = [];
+  if (has(adj.phFrom) || has(adj.phTo)) {
+    if (!has(adj.phFrom) || !has(adj.phTo)) return { error: 'Enter both the IPS pH reading and what you calibrated it to.' };
+    entries.push({ frequency:'Adjustment', item_id:'ph-cal', item:'pH calibration (pH Cal)', pool:pid,
+                   result:'Adjusted', from:String(adj.phFrom), to:String(adj.phTo) });
+  }
+  if (has(adj.orpFrom) || has(adj.orpTo)) {
+    if (!has(adj.orpFrom) || !has(adj.orpTo)) return { error: 'Enter both the old and new ORP1 set level.' };
+    const cfg = ORP_SET[POOLS[pid].type];
+    const from = parseFloat(adj.orpFrom), to = parseFloat(adj.orpTo);
+    if (Math.abs(to - from) > cfg.step) return { error: 'ORP1 set level changes are 5 mV at a time. Check the numbers, or flag to Dini.' };
+    if (to < cfg.min || to > cfg.max) return { error: 'That ORP1 set level is outside '+cfg.min+'–'+cfg.max+' mV. Set it back and flag to Dini.' };
+    entries.push({ frequency:'Adjustment', item_id:'orp-setlevel', item:'ORP1 set level', pool:pid,
+                   result:'Adjusted', from:String(from), to:String(to) });
+  }
+  if (entries.length && !adj.auto) {
+    return { error: 'Confirm the red Auto light is on — the controller doesn\'t dose in standby.' };
+  }
+  return { entries };
 }
 
 function wizToggleInstr(pid) {
