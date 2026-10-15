@@ -559,6 +559,16 @@ function sendDailySummary(data) {
     bodyText += `\nEquipment & controller\n` + eq.map(x => '  ' + x.text).join('\n') + '\n';
   }
 
+  // Checks due / overdue (computed by the tool, sent with the request)
+  const due = (data.checks_due || []).filter(Boolean);
+  if (due.length) {
+    bodyHtml += `<tr><td colspan="2" style="padding:12px 12px 4px;background:#f5ede6;"><strong style="font-size:14px;">Checks due</strong></td></tr>
+      <tr><td colspan="2" style="padding:4px 12px 10px;font-size:13px;color:#555;">${due.map(function(t) {
+        return `<div style="margin:3px 0;${t.indexOf('overdue') >= 0 ? 'color:#c0282e;' : ''}">${t}</div>`;
+      }).join('')}</td></tr>`;
+    bodyText += `\nChecks due\n` + due.map(t => '  ' + t).join('\n') + '\n';
+  }
+
   const missing = poolOrder.filter(p => !byPool[p]);
   const missingNote = missing.length > 0
     ? `<p style="margin:16px 0 0;color:#b85c00;font-size:13px;">⚠ Not logged today: ${missing.map(p => POOL_LABELS[p]).join(', ')}</p>`

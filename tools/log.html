@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Flux · Daily Water Testing</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=7">
+<link rel="stylesheet" href="css/app.css?v=8">
 </head>
 <body>
 
@@ -453,8 +453,14 @@
   <main>
     <div class="tuesday-banner" id="tuesday-banner" style="display:none">
       <div class="tuesday-banner-icon">📋</div>
-      <div class="tuesday-banner-text"><strong>Lucid visited yesterday.</strong> Please enter their readings — CH and TDS are required today for each pool before saving.</div>
+      <div class="tuesday-banner-text"><strong>Weekly parameters not updated since last week.</strong> Enter Lucid's latest CH and TDS when you have them. Logs still save in the meantime, using last week's numbers.</div>
       <button class="tuesday-banner-btn" onclick="switchTab('weekly')">Go to Weekly Parameters →</button>
+    </div>
+
+    <div class="equip-due-banner" id="equip-due-banner" style="display:none">
+      <div class="tuesday-banner-icon">🔧</div>
+      <div class="tuesday-banner-text equip-due-text"></div>
+      <button class="tuesday-banner-btn" onclick="switchTab('equipment')">Go to Equipment →</button>
     </div>
 
     <div class="room-section">
@@ -1103,14 +1109,14 @@
 <footer>FLUX THERMAL LOUNGE · DAILY WATER TESTING · TAYLOR K-2006</footer>
 
 <script src="js/config.js"></script>
-<script src="js/reference-data.js?v=7"></script>
-<script src="js/ips-howto.js?v=7"></script>
-<script src="js/lsi-calc.js?v=7"></script>
-<script src="js/pool-calc.js?v=7"></script>
-<script src="js/daily-log.js?v=7"></script>
-<script src="js/wizard-engine.js?v=7"></script>
-<script src="js/weekly-params.js?v=7"></script>
-<script src="js/equipment-checks.js?v=7"></script>
+<script src="js/reference-data.js?v=8"></script>
+<script src="js/ips-howto.js?v=8"></script>
+<script src="js/lsi-calc.js?v=8"></script>
+<script src="js/pool-calc.js?v=8"></script>
+<script src="js/daily-log.js?v=8"></script>
+<script src="js/wizard-engine.js?v=8"></script>
+<script src="js/weekly-params.js?v=8"></script>
+<script src="js/equipment-checks.js?v=8"></script>
 
 </body>
 </html>

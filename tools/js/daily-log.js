@@ -211,7 +211,8 @@ async function sendDailySummary() {
     const res  = await fetch(SCRIPT_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body:    JSON.stringify({ action: 'sendDailySummary', staff }),
+      body:    JSON.stringify({ action: 'sendDailySummary', staff,
+                 checks_due: (typeof equipDueSummary === 'function') ? equipDueSummary() : [] }),
     });
     const json = await res.json();
     if (json.success) {

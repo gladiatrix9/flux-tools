@@ -681,3 +681,18 @@ footer { background: var(--navy); color: rgba(255,255,255,0.3); text-align: cent
 .eq-set-field.changed input { border-color: var(--warn); background: var(--warn-bg); }
 .eq-set-card .eq-note { border-color: var(--border); margin-top: 0.6rem; }
 .wiz-adj-note { flex: 1; border: 1.5px solid var(--border); border-radius: 6px; padding: 0.35rem 0.5rem; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; }
+
+/* ─── EQUIPMENT: Lucid items, reminders ─── */
+.eq-who-badge { margin-left: 0.5rem; font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; background: var(--light-blue); color: var(--navy); padding: 0.12rem 0.45rem; border-radius: 4px; vertical-align: middle; }
+.eq-lucid-note { display: block; font-weight: 500; color: var(--navy); margin-bottom: 0.2rem; }
+.equip-due-banner { display: flex; align-items: center; gap: 0.75rem; background: var(--warn-bg); border: 1.5px solid var(--warn); border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1.2rem; }
+.equip-due-banner .tuesday-banner-text { color: var(--text); }
+.eq-modal-backdrop { position: fixed; inset: 0; background: rgba(0, 30, 50, 0.45); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 1000; }
+.eq-modal { background: white; border-radius: 14px; max-width: 440px; width: 100%; padding: 1.2rem 1.3rem; box-shadow: 0 10px 40px rgba(0,0,0,0.25); }
+.eq-modal-title { font-family: 'DM Mono', monospace; font-size: 0.95rem; color: var(--navy); margin-bottom: 0.7rem; }
+.eq-modal-list { margin: 0 0 0.7rem 1.1rem; font-size: 0.85rem; line-height: 1.6; }
+.eq-modal-list li.over { color: var(--alert); }
+.eq-modal-note { font-size: 0.78rem; color: var(--muted); margin-bottom: 1rem; }
+.eq-modal-btns { display: flex; justify-content: flex-end; gap: 0.6rem; }
+.equip-due-banner .tuesday-banner-text strong { color: var(--warn); }
+.equip-due-banner .tuesday-banner-btn { border: 1.5px solid var(--warn); }

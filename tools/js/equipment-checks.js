@@ -20,51 +20,51 @@ const EQUIP_POOL_NAMES = {
   'so-hot':'Solstice Hot',      'so-cold':'Solstice Cold',
 };
 
+const LUCID_NOTE = '<span class="eq-lucid-note">Lucid does this — hosts don\'t. Log it here once Lucid confirms it\'s done.</span> ';
+
 const EQUIP_SCHEDULE = [
   { key:'Daily', days:1, who:'Host', title:'Daily — opening round', items:[
     { id:'ips-status', perPool:true, name:'IPS controller status', howto:'flashing',
       picks:['Not in Auto','No Flow light','ORP flashing','pH flashing','ORP alert light','pH alert light','Display blank'],
       detail:'Red <strong>Auto</strong> light on · green <strong>Flow</strong> light on · displays <strong>not flashing</strong> · no red alert lights.' },
     { id:'cl-barrel', name:'Chlorine barrel', value:{ label:'Level', unit:'%', ph:'50' }, usage:true,
-      detail:'Estimate how full it is (%) — the tool compares with past readings, and <strong>using more than usual is an early sign of a leak</strong>. Tell Dini when it\'s under ¼. Suction line in the liquid, 2–3 in. above the bottom. Lid on. Refilled it? Enter the new level and note "refilled".' },
+      detail:'Estimate how full it is (%) — the tool compares with past readings, and <strong>using more than usual is an early sign of a leak</strong>. Tell Dini when it\'s under ¼. Lid on. Refilled it? Enter the new level and note "refilled".' },
     { id:'acid-barrel', name:'Acid barrel', value:{ label:'Level', unit:'%', ph:'50' }, usage:true,
-      detail:'Estimate how full it is (%) — compared with past readings like the chlorine barrel. Tell Dini when it\'s under ¼. Suction line in the liquid, 2–3 in. above the bottom. Lid on.' },
-    { id:'feed-lines', name:'Feed pumps & tubing', howto:'feedCheck',
-      detail:'No drips or chemical inside the Stenner pumps\' clear covers. Tubing to every injection point not kinked, cracked, crusted with white crystals, or full of air.' },
+      detail:'Estimate how full it is (%) — compared with past readings like the chlorine barrel. Tell Dini when it\'s under ¼. Lid on.' },
+    { id:'stenner-tubes', name:'Stenner pumps & suction lines', howto:'feedCheck',
+      detail:'Through each clear cover: no drips or chemical inside, pump tube not flattened, cracked or weeping. Each suction line sitting in the liquid, weighted strainer clean and 2–3 in. above the barrel bottom.' },
+    { id:'feed-lines', name:'Feed tubing',
+      detail:'Tubing from each pump to its injection point: not kinked, cracked, crusted with white crystals, wet, or full of air.' },
+    { id:'injection-points', name:'Injection points',
+      detail:'Where the chlorine and acid tubing enters each pool\'s plumbing: no white crystal buildup, no drips, no wet spots. Report anything — cleaning needs the line isolated (Lucid).' },
     { id:'circulation', name:'Pumps, filters & UV',
       detail:'Circulation pumps running and sounding normal. No leaks at pumps, filters, valves or UV units. UV power lights on.' },
   ]},
   { key:'Weekly', days:7, who:'Host', title:'Weekly', items:[
     { id:'filter-psi', perPool:true, name:'Filter pressure', value:{ label:'Gauge', unit:'psi', ph:'12' },
-      detail:'Read the filter\'s pressure gauge. The cartridge needs cleaning when it\'s <strong>10 PSI above its clean starting pressure</strong> — the tool compares for you if the clean pressure has been logged (see "As needed").' },
-    { id:'stenner-tubes', name:'Stenner pump tubes & suction lines',
-      detail:'Through each clear cover: tube not flattened, cracked or weeping. Weighted strainer at the end of each suction line clean and 2–3 in. above the barrel bottom.' },
-  ]},
-  { key:'Monthly', days:30, who:'Host', title:'Monthly', items:[
-    { id:'injection-points', name:'Injection points',
-      detail:'Where the chlorine and acid tubing enters each pool\'s plumbing: look for white crystal buildup or drips. Report anything — cleaning needs the line isolated (Dini / Lucid).' },
+      detail:'Read each filter\'s pressure gauge and enter it. When it\'s <strong>10 PSI above its clean starting pressure</strong> the cartridge needs cleaning — mark Issue and <strong>report it to Dini or Lucid</strong>. Lucid does the cleaning and replacement; hosts don\'t.' },
     { id:'chem-stock', name:'Chemical & reagent stock',
       detail:'Enough Hasachlor, muriatic acid, baking soda and calcium chloride for 2+ weeks. Taylor reagents not expired and not running low.' },
   ]},
-  { key:'Quarterly', days:91, who:'Dini / Lucid', title:'Every 3 months', items:[
-    { id:'sensor-clean', perPool:true, name:'Clean pH & ORP sensor tips',
-      detail:'IPS manual: every 3–6 months for commercial spas. Controller off → close both flow-cell valves → loosen nut, remove sensor → swirl 30 s in dish-soap water, rinse → swirl 5 s in muriatic acid or white vinegar, rinse (<strong>don\'t touch or brush the tip</strong>) → reinstall hand-tight → open valves → controller on → back to <strong>Auto</strong> → re-check pH calibration after a few minutes.' },
+  { key:'Quarterly', days:91, who:'Lucid', title:'Every 3 months', items:[
+    { id:'sensor-clean', perPool:true, name:'Clean pH & ORP sensor tips', who:'Lucid',
+      detail: LUCID_NOTE + 'IPS manual: every 3–6 months for commercial spas. Controller off → close both flow-cell valves → remove sensor → swirl 30 s in dish-soap water, rinse → swirl 5 s in muriatic acid or white vinegar, rinse (don\'t touch or brush the tip) → reinstall → open valves → controller on → back to Auto → re-check pH calibration.' },
   ]},
-  { key:'Every 6 months', days:182, who:'Dini / Lucid', title:'Every 6 months', items:[
-    { id:'sensor-test', perPool:true, name:'Test pH & ORP sensors',
-      detail:'Clean first. <strong>ORP:</strong> in a glass of tap water it should read 200–400 mV; add a pinch of dichlor/trichlor and it should read 750–800 mV. <strong>pH:</strong> tap water + a little acid should read low; in water above 7.5 the reading should rise. Replace a sensor that fails. Also do this after any time pH went out of range.' },
+  { key:'Every 6 months', days:182, who:'Lucid', title:'Every 6 months', items:[
+    { id:'sensor-test', perPool:true, name:'Test pH & ORP sensors', who:'Lucid',
+      detail: LUCID_NOTE + '<strong>ORP:</strong> in tap water 200–400 mV; with a pinch of dichlor/trichlor 750–800 mV. <strong>pH:</strong> tap water + a little acid reads low; in water above 7.5 the reading rises. Replace a sensor that fails. Also after any time pH went out of range.' },
   ]},
-  { key:'Yearly', days:365, who:'Dini / Lucid', title:'Yearly', items:[
-    { id:'uv-service', name:'UV units — leak test & lamp',
-      detail:'Pentair BioShield manual: leak test at least once a year; replace lamps per the manual\'s lamp-life chart; clean the quartz sleeve when changing the lamp.' },
-    { id:'heater-service', name:'Heaters — annual service',
-      detail:'MasterTemp manual: heater and venting inspected and serviced by a qualified technician every year.' },
+  { key:'Yearly', days:365, who:'Lucid', title:'Yearly', items:[
+    { id:'uv-service', name:'UV units — leak test & lamp', who:'Lucid',
+      detail: LUCID_NOTE + 'Pentair BioShield manual: leak test at least once a year; replace lamps per the lamp-life chart; clean the quartz sleeve when changing the lamp.' },
+    { id:'heater-service', name:'Heaters — annual service', who:'Lucid',
+      detail: LUCID_NOTE + 'MasterTemp manual: heater and venting inspected and serviced by a qualified technician every year.' },
   ]},
-  { key:'As needed', days:0, who:'Whoever did it', title:'As needed — log when done', items:[
-    { id:'filter-clean', perPool:true, name:'Filter cartridge cleaned', value:{ label:'Clean PSI', unit:'psi', ph:'10' }, done:true,
-      detail:'After cleaning or replacing a cartridge, restart the pump and log the gauge reading. Weekly readings are compared to this.' },
-    { id:'stenner-tube-change', name:'Stenner pump tube replaced', done:true,
-      detail:'Stenner manual: replace the duckbill check valve and ferrules at every tube change.' },
+  { key:'As needed', days:0, who:'Log when done', title:'As needed — log when done', items:[
+    { id:'filter-clean', perPool:true, name:'Filter cartridge cleaned / replaced', value:{ label:'Clean PSI', unit:'psi', ph:'10' }, done:true, who:'Lucid',
+      detail: LUCID_NOTE + 'After Lucid cleans or replaces a cartridge and the pump is running again, read the gauge and log it here. Weekly readings are compared to this.' },
+    { id:'stenner-tube-change', name:'Stenner pump tube replaced', done:true, who:'Lucid',
+      detail: LUCID_NOTE + 'Stenner manual: replace the duckbill check valve and ferrules at every tube change.' },
   ]},
 ];
 
@@ -100,11 +100,11 @@ function equipBadge(sec, id, pool) {
 function equipFilterNote(pool, psi) {
   const clean = _equipLast[equipKey('filter-clean', pool)];
   const v = parseFloat(psi);
-  if (!clean || isNaN(v)) return clean ? '' : 'No clean pressure logged yet — log one under "As needed" next time the cartridge is cleaned.';
+  if (!clean || isNaN(v)) return clean ? '' : 'No clean pressure logged yet — log one under "As needed" the next time Lucid cleans the cartridge.';
   const base = parseFloat(clean.value);
   if (isNaN(base)) return '';
   const rise = Math.round((v - base) * 10) / 10;
-  if (rise >= 10) return '⚠ ' + rise + ' PSI above clean (' + base + ') — cartridge needs cleaning. Flag to Dini.';
+  if (rise >= 10) return '⚠ ' + rise + ' PSI above clean (' + base + ') — cartridge needs cleaning. Mark Issue and report to Dini or Lucid.';
   return rise + ' PSI above clean (' + base + ') — OK.';
 }
 
@@ -146,7 +146,8 @@ function equipRender() {
         '</div>';
       }).join('');
       return '<div class="eq-item">' +
-        '<div class="eq-item-head"><span class="eq-item-name">' + it.name + '</span></div>' +
+        '<div class="eq-item-head"><span class="eq-item-name">' + it.name + '</span>' +
+          (it.who ? '<span class="eq-who-badge">' + it.who + '</span>' : '') + '</div>' +
         '<div class="eq-item-detail">' + it.detail +
           (it.howto ? howtoInline(it.howto) : '') + '</div>' +
         rows + '</div>';
@@ -289,7 +290,7 @@ async function equipSave(si) {
       if (it.picks && s.result === 'Issue') value = (s.picks || []).join(', ');
       const rn = equipRowNote(it, pool, Object.assign({}, s, { value: it.picks ? undefined : s.value }));
       if (rn.indexOf('⚠') === 0) {
-        if (it.usage && s.result !== 'Issue') { usageNotIssue = true; return; }
+        if ((it.usage || it.id === 'filter-psi') && s.result !== 'Issue') { usageNotIssue = true; return; }
         const plain = rn.replace(/<[^>]+>/g, '').replace(/^⚠\s*/, '');
         notes = (notes ? notes + ' — ' : '') + '⚑ ' + plain.split('.')[0];
       }
@@ -303,7 +304,7 @@ async function equipSave(si) {
                      result: s.result, value: value, notes: notes });
     });
   });
-  if (usageNotIssue) { status.textContent = 'A barrel dropped faster than usual — mark it Issue and note what you checked.'; status.className = 'eq-save-status err'; return; }
+  if (usageNotIssue) { status.textContent = 'Something needs reporting (barrel usage or filter pressure) — mark it Issue and add a note.'; status.className = 'eq-save-status err'; return; }
   if (missingValue) { status.textContent = 'Enter the set level you read on the controller.'; status.className = 'eq-save-status err'; return; }
   if (missingNote) { status.textContent = 'Add a note for each issue.'; status.className = 'eq-save-status err'; return; }
   if (!entries.length) { status.textContent = 'Tap OK / Done or Issue on at least one item.'; status.className = 'eq-save-status err'; return; }
@@ -355,6 +356,7 @@ function equipRecordLocal(staff, entries) {
   });
   equipRender();
   equipRenderSettings();
+  equipReminders();
 }
 
 // ─── LOAD ──────────────────────────────────────────────────────
@@ -368,6 +370,7 @@ async function fetchEquipmentChecks() {
     _equipToday = data.today || '';
     equipRender();
     equipRenderSettings();
+    equipReminders();
     // ORP set level / guardrail depend on this — refresh any pool in progress.
     EQUIP_POOLS.forEach(function(pid) {
       const st = (typeof _wizState !== 'undefined') && _wizState[pid];
@@ -494,6 +497,88 @@ async function equipSaveSettings(pid) {
     btn.disabled = false; btn.textContent = 'Error — try again';
     say('Not saved. Check your connection.', 'err');
   }
+}
+
+// ══════ REMINDERS ═════════════════════════════════════════════
+// Weekly (and any longer-interval host) checks that are due pop up once a
+// day when the tool opens, and stay as a banner on Log Results until done.
+// Everything due — including Lucid's items — goes into the daily email.
+
+function equipDueItems(includeLucid) {
+  const out = [];
+  EQUIP_SCHEDULE.forEach(function(sec) {
+    if (!sec.days) return;
+    sec.items.forEach(function(it) {
+      const who = it.who || sec.who;
+      const lucid = who === 'Lucid';
+      if (lucid && !includeLucid) return;
+      const pools = it.perPool ? EQUIP_POOLS : [''];
+      let due = 0, overdue = 0, never = 0;
+      pools.forEach(function(pool) {
+        const e = _equipLast[equipKey(it.id, pool)];
+        const d = e ? equipDaysSince(e.date) : null;
+        if (!e) { never++; due++; }
+        else if (d >= sec.days) { due++; if (sec.days > 1 && d >= sec.days * 1.5) overdue++; }
+      });
+      if (due) out.push({ freq: sec.key, days: sec.days, name: it.name, who: who, lucid: lucid,
+                          due: due, of: pools.length, overdue: overdue, never: never });
+    });
+  });
+  return out;
+}
+
+function equipDueLabel(x) {
+  const n = x.of > 1 ? ' (' + x.due + ' of ' + x.of + ' pools)' : '';
+  const tag = x.overdue ? 'overdue' : x.never === x.due ? 'not logged yet' : 'due';
+  return x.freq + ' — ' + x.name + n + ' · ' + tag + (x.lucid ? ' · Lucid' : '');
+}
+
+// Plain-text list for the daily email.
+function equipDueSummary() {
+  if (!_equipToday) return [];
+  return equipDueItems(true).map(equipDueLabel);
+}
+
+function equipReminders() {
+  if (!_equipToday) return;
+  const due = equipDueItems(false).filter(x => x.days > 1);   // weekly+ host checks
+  const banner = document.getElementById('equip-due-banner');
+  if (banner) {
+    banner.style.display = due.length ? 'flex' : 'none';
+    const t = banner.querySelector('.equip-due-text');
+    if (t) t.innerHTML = '<strong>' + (due.length === 1 ? '1 check is' : due.length + ' checks are') + ' due:</strong> ' +
+      due.map(x => x.name).join(', ') + '.';
+  }
+  if (!due.length) return;
+  let seen = '';
+  try { seen = localStorage.getItem('flux-equip-reminder') || ''; } catch (e) {}
+  if (seen === _equipToday) return;
+  try { localStorage.setItem('flux-equip-reminder', _equipToday); } catch (e) {}
+  equipShowReminderModal(due);
+}
+
+function equipShowReminderModal(due) {
+  const old = document.getElementById('equip-reminder-modal');
+  if (old) old.remove();
+  const m = document.createElement('div');
+  m.id = 'equip-reminder-modal';
+  m.className = 'eq-modal-backdrop';
+  m.innerHTML =
+    '<div class="eq-modal" role="dialog" aria-modal="true" aria-labelledby="eq-modal-title">' +
+      '<div class="eq-modal-title" id="eq-modal-title">🔧 Equipment checks due</div>' +
+      '<ul class="eq-modal-list">' + due.map(x => '<li class="' + (x.overdue ? 'over' : '') + '">' + equipDueLabel(x) + '</li>').join('') + '</ul>' +
+      '<div class="eq-modal-note">Takes a few minutes on the Equipment tab. You\'ll also see a reminder on Log Results until they\'re done.</div>' +
+      '<div class="eq-modal-btns">' +
+        '<button class="eq-btn" onclick="equipCloseReminder()">Later</button>' +
+        '<button class="save-btn" onclick="equipCloseReminder(); switchTab(\'equipment\')">Do them now →</button>' +
+      '</div>' +
+    '</div>';
+  m.addEventListener('click', function(e) { if (e.target === m) equipCloseReminder(); });
+  document.body.appendChild(m);
+}
+function equipCloseReminder() {
+  const m = document.getElementById('equip-reminder-modal');
+  if (m) m.remove();
 }
 
 // ─── INIT (last, so every declaration above exists) ─────────────
