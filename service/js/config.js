@@ -13,6 +13,11 @@
 // testing one — paste the /exec URL here after deploying.
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyYEiGmJcGD8OBOnxixs2AqjNwsyTGofLQC-e6v5f4J3NQTyM1af0FceLFvfhS80mlGxg/exec';
 
+// Water-testing Apps Script (apps-script/Code.gs) — same URL as
+// tools/js/config.js. The Daily Update page reads equipment status and
+// saves updates through it. Update both if it's ever redeployed to a new URL.
+const WATER_URL = 'https://script.google.com/macros/s/AKfycbxvQ9EI8IFGukipsQlM6rCdBhP2lCBjTTLdb9T2ISyUx3c-aQ9PpG8IsJQFPe5yaHhojg/exec';
+
 // Staff roster for "Reported By". The water testing page keeps its own
 // roster (tools/log.html); update both if a host is added or removed.
 const STAFF = ['Dini', 'Elizabeth', 'Elise', 'Gigi', 'Mark', 'Meredith', 'Michael', 'Nate', 'Sarah', 'Zach'];

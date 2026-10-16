@@ -21,7 +21,7 @@ const SUMMARY_EMAIL  = 'hello@flux-lounge.com';
 // Bump this whenever Code.gs is redeployed — every JSON response includes
 // it, so the front end (and you, via the browser console) can confirm the
 // live deployment is actually running this version.
-const BACKEND_VERSION = '2026-10-14-equipment-v2';
+const BACKEND_VERSION = '2026-10-16-daily-update-v1';
 
 const POOL_LABELS = {
   'sl-hot':  'Social Lounge — Hot Soak',
@@ -56,6 +56,8 @@ function doGet(e) {
   if (action === 'getPoolState')     return getPoolState();
   if (action === 'getTodayStatus')   return getTodayStatus();
   if (action === 'getEquipmentChecks') return getEquipmentChecks();
+  if (action === 'getDailyUpdate')     return getDailyUpdate();
+  if (action === 'getIncidents')       return getIncidents(e.parameter);
   return jsonResponse({ success: false, error: 'Unknown GET action' });
 }
 
@@ -66,6 +68,7 @@ function doPost(e) {
 
     if (action === 'saveWeeklyParams') return saveWeeklyParams(data);
     if (action === 'sendDailySummary') return sendDailySummary(data);
+    if (action === 'saveDailyUpdate') return saveDailyUpdate(data);
     if (action === 'saveEquipmentChecks') {
       const n = appendEquipRows(SpreadsheetApp.openById(SPREADSHEET_ID), data.staff, data.entries);
       return jsonResponse({ success: true, saved: n });
@@ -723,6 +726,251 @@ function ensureHeader(sheet, name) {
   const hdr = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(x => String(x).trim().toLowerCase());
   if (hdr.indexOf(name.toLowerCase()) >= 0) return;
   sheet.getRange(1, lastCol + 1).setValue(name);
+}
+
+// ══════ DAILY UPDATES (host portal: flux-lounge.com/service/updates.html) ══════
+// One row per day in "Daily Updates" (the morning host saves, the closing
+// host opens the same day, adds to it and saves again). Restock requests
+// live in "Restock" and stay open until someone marks them restocked.
+// Drinks, restock items, equipment and announcements are edited by Dini in
+// the "Update Lists" tab — no code change needed.
+//
+// Incidents are NOT stored in this (link-shared) spreadsheet: they go to a
+// private "Flux Incident Log" spreadsheet the script creates on first use.
+// This sheet only keeps "INC-… · type · where".
+
+const UPD_SHEET       = 'Daily Updates';
+const UPD_HEADERS     = ['Date','Last Saved','Hosts','New','Return','Member','Total','Sales','Restock Requested','Notes','Equipment','Equipment Notes','Incidents'];
+const RESTOCK_SHEET   = 'Restock';
+const RESTOCK_HEADERS = ['Item','Status','Requested','Requested By','Restocked','Restocked By'];
+const LISTS_SHEET     = 'Update Lists';
+const LISTS_HEADERS   = ['Type','Item','Active'];
+const LISTS_DEFAULTS  = [
+  ['sale','Ablis (green)'],['sale','Ablis (red)'],['sale','Beer'],['sale','Bubbles'],['sale','Pinot Gris'],
+  ['sale','Flamingo'],['sale','Frosé'],['sale','Rosé Spritz'],['sale','Seltzer'],['sale','Slushy'],
+  ['sale','NA Slushy'],['sale','Topo Chico'],['sale','Thorne packet'],['sale','10-pack soak'],['sale','Microfiber towel'],
+  ['restock','Large gloves'],['restock','Small trash bags'],['restock','Large trash bags'],['restock','Bathing suit bags'],
+  ['restock','Blue towels'],['restock','White towels'],['restock','Microfiber towels'],['restock','Tampons'],
+  ['restock','Feedback surveys'],['restock','Markers'],['restock','Seltzer'],['restock','Frosé'],
+  ['restock','Coconut water'],['restock','Topo Chico'],
+  ['equipment','Slushie machine'],['equipment','Card reader'],['equipment','Dehumidifier'],
+  ['equipment','Showers & drains'],['equipment','Lights & breakers'],['equipment','Lockers'],
+  ['announcement','Morning Soak Club: Tue–Thu 9–11 am. $29, coffee NOT complimentary. Return guests & drop-ins only.'],
+  ['announcement','Solstice Hot needs to stay around 99–100 °F.'],
+  ['announcement','Close to open: pull drinks forward in the fridge, plug in electronics, wipe out the lockers, fix the bag hangers.'],
+  ['announcement','Turn the dehumidifier off (breaker 13, right panel) when the windows and door are open.'],
+  ['announcement','Coffee is from Bohemian Roastery.'],
+];
+
+function plainSheet(ss, name, headers, seedRows) {
+  let sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    sh.getRange(2, 1, sh.getMaxRows() - 1, headers.length).setNumberFormat('@');
+    if (seedRows && seedRows.length) {
+      const rows = seedRows.map(r => headers.map((h, i) => r[i] !== undefined ? String(r[i]) : (h === 'Active' ? 'yes' : '')));
+      sh.getRange(2, 1, rows.length, headers.length).setValues(rows);
+    }
+  }
+  return sh;
+}
+
+function readRows(sh) {
+  if (!sh || sh.getLastRow() < 2) return [];
+  const vals = sh.getDataRange().getValues();
+  const h = vals[0].map(x => String(x).trim());
+  return vals.slice(1).map((r, i) => {
+    const o = { _row: i + 2 };
+    h.forEach((k, j) => o[k] = r[j] instanceof Date ? r[j] : String(r[j] == null ? '' : r[j]));
+    return o;
+  });
+}
+
+function getDailyUpdate() {
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const tz    = Session.getScriptTimeZone();
+  const today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const fmt   = d => d instanceof Date ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d).substring(0, 10);
+
+  // Lists (editable in the sheet)
+  const lists = { sale: [], restock: [], equipment: [], announcement: [] };
+  readRows(plainSheet(ss, LISTS_SHEET, LISTS_HEADERS, LISTS_DEFAULTS)).forEach(r => {
+    const t = String(r['Type']).trim().toLowerCase();
+    if (lists[t] && String(r['Item']).trim() && !/^(no|n|false|0)$/i.test(String(r['Active']).trim())) lists[t].push(String(r['Item']).trim());
+  });
+
+  // Today's update + the last 7 days (summary only)
+  const ups = readRows(plainSheet(ss, UPD_SHEET, UPD_HEADERS));
+  const parse = j => { try { return JSON.parse(j || '{}'); } catch (e) { return {}; } };
+  let update = null;
+  const recent = [];
+  ups.forEach(r => {
+    const d = fmt(r['Date']);
+    const o = {
+      date: d, hosts: r['Hosts'], new: r['New'], ret: r['Return'], member: r['Member'], total: r['Total'],
+      sales: parse(r['Sales']), notes: r['Notes'], equipment: parse(r['Equipment']),
+      equipmentNotes: parse(r['Equipment Notes']), restock: r['Restock Requested'], incidents: r['Incidents'],
+    };
+    if (d === today) update = o; else if (d < today) recent.push(o);
+  });
+  recent.sort((a, b) => a.date < b.date ? 1 : -1);
+
+  // Open restock requests
+  const restockOpen = readRows(plainSheet(ss, RESTOCK_SHEET, RESTOCK_HEADERS))
+    .filter(r => String(r['Status']).toLowerCase() === 'open')
+    .map(r => ({ item: r['Item'], since: fmt(r['Requested']), by: r['Requested By'] }));
+
+  // Pool status today (same data the water log uses)
+  const pools = JSON.parse(getTodayStatus().getContent()).status || {};
+
+  // Equipment checks: today's entries, and issues still open (latest entry = Issue, last 7 days)
+  const eq = ss.getSheetByName(EQUIP_SHEET);
+  const checksToday = [], latest = {};
+  if (eq && eq.getLastRow() >= 2) {
+    const vals = eq.getDataRange().getValues();
+    const h = vals[0].map(x => String(x).trim().toLowerCase());
+    const c = n => h.indexOf(n);
+    vals.slice(1).forEach(r => {
+      const dt = r[c('saved at')] instanceof Date ? r[c('saved at')] : new Date(r[c('saved at')]);
+      if (isNaN(dt.getTime())) return;
+      const e = { date: Utilities.formatDate(dt, tz, 'yyyy-MM-dd'), t: dt.getTime(), frequency: String(r[c('frequency')]),
+                  item: String(r[c('item')]), id: String(r[c('item id')]), pool: String(r[c('pool')] || ''),
+                  result: String(r[c('result')]), notes: String(r[c('notes')] || '') };
+      if (e.date === today && e.frequency !== 'Settings' && e.frequency !== 'Adjustment') checksToday.push(e);
+      const k = e.id + '|' + e.pool;
+      if (!latest[k] || e.t >= latest[k].t) latest[k] = e;
+    });
+  }
+  const weekAgo = Utilities.formatDate(new Date(Date.now() - 7 * 86400000), tz, 'yyyy-MM-dd');
+  const openIssues = Object.keys(latest).map(k => latest[k]).filter(e => e.result === 'Issue' && e.date >= weekAgo);
+
+  return jsonResponse({ success: true, today, update, recent: recent.slice(0, 7), lists, restockOpen,
+                        pools, checks: { today: checksToday, openIssues } });
+}
+
+function saveDailyUpdate(data) {
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const tz    = Session.getScriptTimeZone();
+  const now   = new Date();
+  const today = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
+  const stamp = Utilities.formatDate(now, tz, 'M/d/yyyy h:mm a');
+  const lock  = LockService.getScriptLock();
+  lock.waitLock(20000);
+  let filed = {};
+  try {
+    // ── incidents → private log (deduped by submission id) ──
+    filed = saveIncidentRows(data.incidents_new || [], data.staff, today, tz);
+    const incSummary = (data.incidents_new || []).map(x => filed[x.sid] ? filed[x.sid] + ' · ' + x.type + ' · ' + x.location : '').filter(Boolean);
+
+    // ── the day's row (upsert) ──
+    const sh   = plainSheet(ss, UPD_SHEET, UPD_HEADERS);
+    const rows = readRows(sh);
+    const fmt  = d => d instanceof Date ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d).substring(0, 10);
+    const existing = rows.filter(r => fmt(r['Date']) === today).pop();
+    const hosts = (existing ? String(existing['Hosts']).split(/,\s*/) : []).filter(Boolean);
+    if (data.staff && hosts.indexOf(data.staff) < 0) hosts.push(data.staff);
+    const c = data.counts || {};
+    const n = v => Math.max(0, parseInt(v, 10) || 0);
+    const total = n(c.new) + n(c.ret) + n(c.member);
+    const prevReq = existing ? String(existing['Restock Requested']).split(/,\s*/).filter(Boolean) : [];
+    (data.restock_add || []).forEach(i => { if (prevReq.indexOf(i) < 0) prevReq.push(i); });
+    const row = [today, stamp, hosts.join(', '), n(c.new), n(c.ret), n(c.member), total,
+                 JSON.stringify(data.sales || {}), prevReq.join(', '), String(data.notes || ''),
+                 JSON.stringify(data.equipment || {}), JSON.stringify(data.equipment_notes || {}),
+                 mergeList(existing ? existing['Incidents'] : '', incSummary)].map(String);
+    const r = existing ? existing._row : sh.getLastRow() + 1;
+    sh.getRange(r, 1, 1, row.length).setNumberFormat('@').setValues([row]);
+
+    // ── restock requests ──
+    const rs = plainSheet(ss, RESTOCK_SHEET, RESTOCK_HEADERS);
+    const open = readRows(rs).filter(x => String(x['Status']).toLowerCase() === 'open');
+    (data.restock_done || []).forEach(item => {
+      open.filter(x => x['Item'] === item).forEach(x => {
+        rs.getRange(x._row, 2).setValue('Done');
+        rs.getRange(x._row, 5, 1, 2).setNumberFormat('@').setValues([[today, String(data.staff || '')]]);
+      });
+    });
+    const add = (data.restock_add || []).filter(item => !open.some(x => x['Item'] === item));
+    if (add.length) {
+      const start = rs.getLastRow() + 1;
+      rs.getRange(start, 1, add.length, RESTOCK_HEADERS.length).setNumberFormat('@')
+        .setValues(add.map(item => [String(item), 'Open', today, String(data.staff || ''), '', '']));
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  return jsonResponse({ success: true, saved: today, incident_ids: filed });
+}
+
+function mergeList(prev, add) {
+  const items = String(prev || '').split(/;\s*/).filter(Boolean);
+  add.forEach(a => { if (items.indexOf(a) < 0) items.push(a); });
+  return items.join('; ');
+}
+
+// ══════ INCIDENT LOG ══════
+// Private spreadsheet, created on first use and owned by whoever deployed
+// the script (Dini). Never shared by link. Reading it through the website
+// needs the team code saved in Script Properties as INCIDENT_KEY
+// (Apps Script → Project Settings → Script properties).
+
+const INCIDENT_HEADERS = ['Incident ID','Submission ID','Date','Time','Reported By','Type','Where','Who (description)','Guest Name(s)','What Happened','What We Did','Police / EMS','Logged At'];
+
+function incidentLogSheet() {
+  const props = PropertiesService.getScriptProperties();
+  let id = props.getProperty('INCIDENT_SHEET_ID');
+  let ss = null;
+  if (id) { try { ss = SpreadsheetApp.openById(id); } catch (e) { ss = null; } }
+  if (!ss) {
+    ss = SpreadsheetApp.create('Flux Incident Log (private)');
+    props.setProperty('INCIDENT_SHEET_ID', ss.getId());
+    const sh = ss.getSheets()[0];
+    sh.setName('Incidents');
+    sh.getRange(1, 1, 1, INCIDENT_HEADERS.length).setValues([INCIDENT_HEADERS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    sh.getRange(2, 1, sh.getMaxRows() - 1, INCIDENT_HEADERS.length).setNumberFormat('@');
+  }
+  return ss.getSheetByName('Incidents') || ss.getSheets()[0];
+}
+
+function saveIncidentRows(list, staff, today, tz) {
+  const out = {};
+  if (!list.length) return out;
+  const sh   = incidentLogSheet();
+  const rows = readRows(sh);
+  const prefix = 'INC-' + today.replace(/-/g, '') + '-';
+  let seq = 0;
+  rows.forEach(r => {
+    const id = String(r['Incident ID']);
+    if (id.indexOf(prefix) === 0) seq = Math.max(seq, parseInt(id.slice(prefix.length), 10) || 0);
+  });
+  const stamp = Utilities.formatDate(new Date(), tz, 'M/d/yyyy h:mm a');
+  list.forEach(x => {
+    const dup = rows.find(r => r['Submission ID'] === String(x.sid));
+    if (dup) { out[x.sid] = dup['Incident ID']; return; }       // Safari retry — already logged
+    seq++;
+    const id = prefix + (seq < 10 ? '0' + seq : seq);
+    const row = [id, x.sid, today, x.time, staff, x.type, x.location, x.who, x.guestName, x.what, x.action, x.police, stamp].map(v => String(v == null ? '' : v));
+    sh.getRange(sh.getLastRow() + 1, 1, 1, row.length).setNumberFormat('@').setValues([row]);
+    rows.push({ 'Submission ID': String(x.sid), 'Incident ID': id });
+    out[x.sid] = id;
+  });
+  return out;
+}
+
+function getIncidents(p) {
+  const key = PropertiesService.getScriptProperties().getProperty('INCIDENT_KEY');
+  if (!key) return jsonResponse({ success: false, error: 'not-set-up' });
+  if (String(p.key || '') !== key) return jsonResponse({ success: false, error: 'wrong-code' });
+  const q = String(p.q || '').toLowerCase().trim();
+  const list = readRows(incidentLogSheet()).map(r => ({
+    id: r['Incident ID'], date: r['Date'], time: r['Time'], by: r['Reported By'], type: r['Type'], where: r['Where'],
+    who: r['Who (description)'], guestName: r['Guest Name(s)'], what: r['What Happened'], action: r['What We Did'], police: r['Police / EMS'],
+  })).filter(x => !q || Object.keys(x).some(k => String(x[k]).toLowerCase().indexOf(q) >= 0));
+  list.sort((a, b) => a.id < b.id ? 1 : -1);
+  return jsonResponse({ success: true, incidents: list.slice(0, 100) });
 }
 
 // ─── HELPER ──────────────────────────────────────────────────

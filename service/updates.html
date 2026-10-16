@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flux · Daily Update</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css?v=3">
+<link rel="stylesheet" href="css/updates.css?v=1">
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <img class="logo-mark" src="assets/flux-logo.svg" alt="Flux Thermal Lounge">
+    </div>
+    <div class="header-title">
+      Daily Update
+      <span id="hdr-date">Host Portal</span>
+    </div>
+  </div>
+  <div class="tabs">
+    <a class="tab-btn active" href="updates.html">Daily Update</a>
+    <a class="tab-btn" href="wiki.html">Guide</a>
+    <a class="tab-btn cross" href="../tools/log.html">Water Testing</a>
+  </div>
+</header>
+
+<main>
+
+  <div class="callout warn" id="load-error" style="display:none;margin-bottom:1rem">
+    <span class="callout-icon">⚠</span>
+    <span>Couldn't load today's info. Check the connection and refresh — anything you type is still kept on this device.</span>
+  </div>
+
+  <!-- ── START OF SHIFT (reference, not shared) ── -->
+  <div class="up-block">
+    <div class="up-block-title">Start of shift</div>
+    <details class="up-ref" open>
+      <summary>📌 Announcements</summary>
+      <ul class="up-ann" id="ann-list"><li class="up-muted">Loading…</li></ul>
+    </details>
+    <div class="up-sub">Equipment status right now</div>
+    <div class="up-grid" id="status-live"></div>
+    <div class="up-hint">Pools and feed checks come from the water log and Equipment tab automatically. Mark the other items below in the update.</div>
+  </div>
+
+  <!-- ── TODAY'S UPDATE ── -->
+  <div class="up-block">
+    <div class="up-block-title">Today's update <span class="up-saved" id="saved-info"></span></div>
+
+    <div class="field" style="margin-bottom:1rem">
+      <label class="field-label" for="staff">Your name <span class="req">*</span></label>
+      <select id="staff"></select>
+    </div>
+
+    <div class="fsection">
+      <div class="fsection-top"><div class="fsection-title">Guests</div><div class="fsection-optional" id="guest-total">Total 0</div></div>
+      <div class="fsection-body"><div class="up-steppers" id="counts"></div></div>
+    </div>
+
+    <div class="fsection">
+      <div class="fsection-top"><div class="fsection-title">Drinks &amp; retail</div></div>
+      <div class="fsection-body">
+        <div class="up-sales" id="sales"></div>
+        <div class="up-add"><input type="text" id="sale-other" placeholder="Something else sold…"><button class="up-btn" onclick="addSaleItem()">Add</button></div>
+      </div>
+    </div>
+
+    <div class="fsection">
+      <div class="fsection-top"><div class="fsection-title">Equipment</div></div>
+      <div class="fsection-body">
+        <div class="up-equip" id="equip"></div>
+      </div>
+    </div>
+
+    <div class="fsection">
+      <div class="fsection-top"><div class="fsection-title">Restock</div></div>
+      <div class="fsection-body">
+        <div class="up-sub">Still needed</div>
+        <div id="restock-open"></div>
+        <div class="up-sub">Running low on something? Tap it</div>
+        <div class="up-chips" id="restock-chips"></div>
+        <div class="up-add"><input type="text" id="restock-other" placeholder="Something else…"><button class="up-btn" onclick="addRestockOther()">Add</button></div>
+      </div>
+    </div>
+
+    <div class="fsection">
+      <div class="fsection-top"><div class="fsection-title">Notes</div><div class="fsection-optional">one per line</div></div>
+      <div class="fsection-body">
+        <textarea id="notes" placeholder="Slushie machine left side stopped mixing&#10;Lots of requests for Topo Chico&#10;Watered the plants"></textarea>
+      </div>
+    </div>
+
+    <div class="fsection">
+      <div class="fsection-top"><div class="fsection-title">Incidents</div><div class="fsection-optional">if any</div></div>
+      <div class="fsection-body">
+        <div id="incidents"></div>
+        <button class="up-btn" onclick="addIncident()">+ Add an incident</button>
+        <div class="up-hint">Incidents are kept in a private incident log so they can be looked up later (below). Guest names go in the log only — never in the WhatsApp image.</div>
+      </div>
+    </div>
+
+    <div class="submit-row">
+      <button class="submit-btn" id="share-btn" onclick="saveAndShare()">Save &amp; share to WhatsApp</button>
+      <button class="up-btn" id="save-btn" onclick="saveOnly()">Save only</button>
+      <div class="submit-note" id="save-status"></div>
+    </div>
+  </div>
+
+  <!-- ── INCIDENT LOOKUP ── -->
+  <details class="up-block up-history">
+    <summary class="up-block-title">Look up past incidents</summary>
+    <div class="up-hint" style="margin-bottom:0.6rem">Search by name, description, place or anything else — e.g. before letting a guest in who caused trouble before.</div>
+    <div class="up-add" id="inc-key-row" style="display:none"><input type="password" id="inc-key" placeholder="Team code" autocomplete="off"></div>
+    <div class="up-add"><input type="text" id="inc-q" placeholder="Name, description, ADA shower…" onkeydown="if(event.key==='Enter')searchIncidents()"><button class="up-btn" onclick="searchIncidents()">Search</button></div>
+    <div id="inc-results"></div>
+  </details>
+
+  <!-- ── HISTORY ── -->
+  <details class="up-block up-history">
+    <summary class="up-block-title">Previous days</summary>
+    <div id="history"></div>
+  </details>
+
+</main>
+
+<!-- Off-screen card that becomes the shared image -->
+<div id="card-wrap" aria-hidden="true"><div id="report-card"></div></div>
+
+<!-- Fallback when the phone can't share an image directly -->
+<div class="up-imgview" id="img-view" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="up-imgview-inner">
+    <div class="up-imgview-tip">Press and hold the image to save or share it, then post it in WhatsApp.</div>
+    <img id="img-out" alt="Daily update image">
+    <button class="up-btn" onclick="document.getElementById('img-view').style.display='none'">Close</button>
+  </div>
+</div>
+
+<script src="js/config.js?v=4"></script>
+<script src="js/updates.js?v=1"></script>
+</body>
+</html>
