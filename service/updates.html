@@ -6,14 +6,14 @@
 <title>Flux · Daily Update</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css?v=3">
-<link rel="stylesheet" href="css/updates.css?v=1">
+<link rel="stylesheet" href="css/updates.css?v=3">
 </head>
 <body>
 
 <header>
   <div class="header-top">
     <div>
-      <img class="logo-mark" src="assets/flux-logo.svg" alt="Flux Thermal Lounge">
+      <a href="/service/index.html" title="Staff home"><img class="logo-mark" src="assets/flux-logo.svg" alt="Flux Thermal Lounge"></a>
     </div>
     <div class="header-title">
       Daily Update
@@ -21,9 +21,10 @@
     </div>
   </div>
   <div class="tabs">
+    <a class="tab-btn home" href="/service/index.html">⌂ Home</a>
     <a class="tab-btn active" href="updates.html">Daily Update</a>
     <a class="tab-btn" href="wiki.html">Guide</a>
-    <a class="tab-btn cross" href="../tools/log.html">Water Testing</a>
+    <a class="tab-btn cross" href="/tools/log.html">Water Testing</a>
   </div>
 </header>
 
@@ -34,25 +35,67 @@
     <span>Couldn't load today's info. Check the connection and refresh — anything you type is still kept on this device.</span>
   </div>
 
-  <!-- ── START OF SHIFT (reference, not shared) ── -->
+  <div class="callout warn" id="draft-warn" style="display:none;margin-bottom:1rem">
+    <span class="callout-icon">⚠</span>
+    <span><span id="draft-warn-text"></span> <button class="up-link" style="color:var(--navy)" onclick="startOver()">Start over from the latest</button></span>
+  </div>
+
+  <!-- ── START OF SHIFT ── -->
   <div class="up-block">
     <div class="up-block-title">Start of shift</div>
-    <details class="up-ref" open>
-      <summary>📌 Announcements</summary>
-      <ul class="up-ann" id="ann-list"><li class="up-muted">Loading…</li></ul>
+
+    <div class="up-ref">
+      <div class="up-ref-head"><span>📌 Announcements</span><button class="up-link" style="color:var(--navy)" onclick="editAnnouncements()">Edit</button></div>
+      <div id="ann-view">
+        <ul class="up-ann" id="ann-list"><li class="up-muted">Loading…</li></ul>
+        <div class="up-ann-meta" id="ann-meta"></div>
+      </div>
+      <div id="ann-edit" style="display:none" class="up-ann-edit">
+        <textarea id="ann-text" rows="5" placeholder="One announcement per line"></textarea>
+        <div class="up-add"><button class="submit-btn" onclick="saveAnnouncements()">Save announcements</button><button class="up-btn" onclick="renderAnnouncements()">Cancel</button></div>
+        <div class="submit-note" id="ann-status"></div>
+      </div>
+    </div>
+
+    <div class="up-sub">Pool equipment <span id="pool-summary" class="up-pool-sum"></span></div>
+    <div class="up-table-wrap" id="pool-table"></div>
+    <div class="up-legend">✓ good · ! needs adjustment · ✕ needs attention · · not checked yet · — n/a</div>
+    <div class="up-shared-row" id="shared-supply"></div>
+    <details class="up-ref up-details" id="pool-details">
+      <summary>Details</summary>
+      <div id="pool-issues"></div>
+      <div class="up-hint">From today's water tests and the water tool's Equipment tab. Fix something? Re-do that pool's check on the Equipment tab and it clears here.</div>
     </details>
-    <div class="up-sub">Equipment status right now</div>
-    <div class="up-grid" id="status-live"></div>
-    <div class="up-hint">Pools and feed checks come from the water log and Equipment tab automatically. Mark the other items below in the update.</div>
   </div>
 
   <!-- ── TODAY'S UPDATE ── -->
   <div class="up-block">
-    <div class="up-block-title">Today's update <span class="up-saved" id="saved-info"></span></div>
+    <div class="up-block-title">Update <span class="up-saved" id="saved-info"></span></div>
 
     <div class="field" style="margin-bottom:1rem">
       <label class="field-label" for="staff">Your name <span class="req">*</span></label>
       <select id="staff"></select>
+    </div>
+
+    <div class="fsection">
+      <div class="fsection-top"><div class="fsection-title">Notes</div></div>
+      <div class="fsection-body">
+        <textarea id="notes" class="tall" placeholder="Slushie machine left side stopped mixing&#10;Card reader unplugged overnight — plugged back in&#10;Lots of requests for Topo Chico"></textarea>
+        <div class="up-notes-bar"><span class="up-hint" id="notes-hint">One per line.</span>
+          <button class="up-link" id="notes-clear" onclick="clearNotes()">Clear all notes</button>
+          <button class="up-link" id="notes-undo" style="color:var(--navy)" onclick="undoClearNotes()">Undo clear</button></div>
+      </div>
+    </div>
+
+    <div class="fsection">
+      <div class="fsection-top"><div class="fsection-title">Needs fixing</div><div class="fsection-optional">not pool equipment</div></div>
+      <div class="fsection-body">
+        <div id="fix-open"></div>
+        <div class="up-sub">Something broken or not working? Tap it</div>
+        <div class="up-chips" id="fix-chips"></div>
+        <div class="up-add"><input type="text" id="fix-other" placeholder="Something else…"><button class="up-btn" onclick="addOpenOther('fix')">Add</button></div>
+        <div class="up-hint">Stays on the list for every shift until someone taps Fixed. Pool equipment is tracked in the table above.</div>
+      </div>
     </div>
 
     <div class="fsection">
@@ -69,27 +112,12 @@
     </div>
 
     <div class="fsection">
-      <div class="fsection-top"><div class="fsection-title">Equipment</div></div>
-      <div class="fsection-body">
-        <div class="up-equip" id="equip"></div>
-      </div>
-    </div>
-
-    <div class="fsection">
       <div class="fsection-top"><div class="fsection-title">Restock</div></div>
       <div class="fsection-body">
-        <div class="up-sub">Still needed</div>
-        <div id="restock-open"></div>
+                <div id="restock-open"></div>
         <div class="up-sub">Running low on something? Tap it</div>
         <div class="up-chips" id="restock-chips"></div>
-        <div class="up-add"><input type="text" id="restock-other" placeholder="Something else…"><button class="up-btn" onclick="addRestockOther()">Add</button></div>
-      </div>
-    </div>
-
-    <div class="fsection">
-      <div class="fsection-top"><div class="fsection-title">Notes</div><div class="fsection-optional">one per line</div></div>
-      <div class="fsection-body">
-        <textarea id="notes" placeholder="Slushie machine left side stopped mixing&#10;Lots of requests for Topo Chico&#10;Watered the plants"></textarea>
+        <div class="up-add"><input type="text" id="restock-other" placeholder="Something else…"><button class="up-btn" onclick="addOpenOther('restock')">Add</button></div>
       </div>
     </div>
 
@@ -138,7 +166,7 @@
   </div>
 </div>
 
-<script src="js/config.js?v=4"></script>
-<script src="js/updates.js?v=1"></script>
+<script src="js/config.js?v=5"></script>
+<script src="js/updates.js?v=3"></script>
 </body>
 </html>

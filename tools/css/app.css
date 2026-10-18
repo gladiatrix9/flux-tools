@@ -696,3 +696,10 @@ footer { background: var(--navy); color: rgba(255,255,255,0.3); text-align: cent
 .eq-modal-btns { display: flex; justify-content: flex-end; gap: 0.6rem; }
 .equip-due-banner .tuesday-banner-text strong { color: var(--warn); }
 .equip-due-banner .tuesday-banner-btn { border: 1.5px solid var(--warn); }
+
+/* ─── HOME LINKS ─── */
+.logo-link { text-decoration: none; display: block; }
+a.tab-btn { text-decoration: none; display: inline-flex; align-items: center; }
+.tab-btn.home { color: rgba(255,255,255,0.75); }
+.tab-btn.cross { margin-left: auto; color: rgba(255,255,255,0.32); }
+@media (max-width: 680px) { .tab-btn.cross { margin-left: 0; } }

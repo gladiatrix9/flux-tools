@@ -1,10 +1,10 @@
-// ─── AUTH CHECK — redirect to login if not authenticated ─────
-// Same sessionStorage key as /tools, and same origin, so a host who
-// signed in on either page is already signed in on the other.
+// ─── AUTH CHECK — send to the staff home page if not signed in ─────
+// Signing in on the home page (/service/index.html) is remembered on the
+// device (localStorage) until "Sign out". Same origin, so it covers every tool.
 (function() {
-  if (sessionStorage.getItem('flux-auth') !== 'ok') {
-    window.location.replace('index.html');
-  }
+  let ok = false;
+  try { ok = localStorage.getItem('flux-auth') === 'ok' || sessionStorage.getItem('flux-auth') === 'ok'; } catch (e) {}
+  if (!ok) window.location.replace('/service/index.html');
 })();
 
 // ─── CONFIG ──────────────────────────────────────────────────

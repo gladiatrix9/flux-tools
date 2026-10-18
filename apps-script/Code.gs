@@ -69,6 +69,7 @@ function doPost(e) {
     if (action === 'saveWeeklyParams') return saveWeeklyParams(data);
     if (action === 'sendDailySummary') return sendDailySummary(data);
     if (action === 'saveDailyUpdate') return saveDailyUpdate(data);
+    if (action === 'saveAnnouncements') return saveAnnouncements(data);
     if (action === 'saveEquipmentChecks') {
       const n = appendEquipRows(SpreadsheetApp.openById(SPREADSHEET_ID), data.staff, data.entries);
       return jsonResponse({ success: true, saved: n });
@@ -729,22 +730,33 @@ function ensureHeader(sheet, name) {
 }
 
 // ══════ DAILY UPDATES (host portal: flux-lounge.com/service/updates.html) ══════
-// One row per day in "Daily Updates" (the morning host saves, the closing
-// host opens the same day, adds to it and saves again). Restock requests
-// live in "Restock" and stay open until someone marks them restocked.
-// Drinks, restock items, equipment and announcements are edited by Dini in
-// the "Update Lists" tab — no code change needed.
+// Every save is a new entry in "Daily Updates". The page starts each host
+// from the latest entry: same day → everything carries over; new day →
+// only the notes carry over (counts and sales start at zero).
+// Restock requests and non-pool repairs ("Needs fixing") live in
+// "Open Items" and carry over until someone marks them restocked / fixed.
+// Announcements live in "Announcements" (latest row wins) and are edited
+// from the page. Drinks and restock items are edited by Dini in
+// the "Update Lists" tab.
 //
 // Incidents are NOT stored in this (link-shared) spreadsheet: they go to a
 // private "Flux Incident Log" spreadsheet the script creates on first use.
 // This sheet only keeps "INC-… · type · where".
 
 const UPD_SHEET       = 'Daily Updates';
-const UPD_HEADERS     = ['Date','Last Saved','Hosts','New','Return','Member','Total','Sales','Restock Requested','Notes','Equipment','Equipment Notes','Incidents'];
-const RESTOCK_SHEET   = 'Restock';
-const RESTOCK_HEADERS = ['Item','Status','Requested','Requested By','Restocked','Restocked By'];
+const UPD_HEADERS     = ['Date','Saved At','Host','New','Return','Member','Total','Sales','Opened','Closed','Notes','Pool Equipment','Incidents'];
+const ANN_SHEET       = 'Announcements';
+const ANN_HEADERS     = ['Saved At','By','Announcements'];
+const OPEN_SHEET      = 'Open Items';
+const OPEN_HEADERS    = ['Kind','Item','Detail','Status','Opened','Opened By','Closed','Closed By'];
 const LISTS_SHEET     = 'Update Lists';
 const LISTS_HEADERS   = ['Type','Item','Active'];
+const ANN_DEFAULT = [
+  'Morning Soak Club: Tue–Thu 9–11 am. $29, coffee NOT complimentary. Return guests & drop-ins only.',
+  'Solstice Hot needs to stay around 99–100 °F.',
+  'Close to open: pull drinks forward in the fridge, plug in electronics, wipe out the lockers, fix the bag hangers.',
+  'Turn the dehumidifier off (breaker 13, right panel) when the windows and door are open.',
+].join('\n');
 const LISTS_DEFAULTS  = [
   ['sale','Ablis (green)'],['sale','Ablis (red)'],['sale','Beer'],['sale','Bubbles'],['sale','Pinot Gris'],
   ['sale','Flamingo'],['sale','Frosé'],['sale','Rosé Spritz'],['sale','Seltzer'],['sale','Slushy'],
@@ -753,13 +765,9 @@ const LISTS_DEFAULTS  = [
   ['restock','Blue towels'],['restock','White towels'],['restock','Microfiber towels'],['restock','Tampons'],
   ['restock','Feedback surveys'],['restock','Markers'],['restock','Seltzer'],['restock','Frosé'],
   ['restock','Coconut water'],['restock','Topo Chico'],
-  ['equipment','Slushie machine'],['equipment','Card reader'],['equipment','Dehumidifier'],
-  ['equipment','Showers & drains'],['equipment','Lights & breakers'],['equipment','Lockers'],
-  ['announcement','Morning Soak Club: Tue–Thu 9–11 am. $29, coffee NOT complimentary. Return guests & drop-ins only.'],
-  ['announcement','Solstice Hot needs to stay around 99–100 °F.'],
-  ['announcement','Close to open: pull drinks forward in the fridge, plug in electronics, wipe out the lockers, fix the bag hangers.'],
-  ['announcement','Turn the dehumidifier off (breaker 13, right panel) when the windows and door are open.'],
-  ['announcement','Coffee is from Bohemian Roastery.'],
+  ['equipment','Card reader'],['equipment','Slushie machine'],['equipment','Dishwasher'],['equipment','Water tap'],
+  ['equipment','Dehumidifier'],['equipment','Lights & breakers'],['equipment','Showers & drains'],['equipment','Lockers'],
+  ['equipment','Ice machine'],['equipment','Fridge'],['equipment','Music / speakers'],['equipment','Wi-Fi'],
 ];
 
 function plainSheet(ss, name, headers, seedRows) {
@@ -795,39 +803,53 @@ function getDailyUpdate() {
   const fmt   = d => d instanceof Date ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d).substring(0, 10);
 
   // Lists (editable in the sheet)
-  const lists = { sale: [], restock: [], equipment: [], announcement: [] };
+  const lists = { sale: [], restock: [], equipment: [] };
   readRows(plainSheet(ss, LISTS_SHEET, LISTS_HEADERS, LISTS_DEFAULTS)).forEach(r => {
     const t = String(r['Type']).trim().toLowerCase();
     if (lists[t] && String(r['Item']).trim() && !/^(no|n|false|0)$/i.test(String(r['Active']).trim())) lists[t].push(String(r['Item']).trim());
   });
 
-  // Today's update + the last 7 days (summary only)
+  // Announcements (latest row)
+  const annRows = readRows(plainSheet(ss, ANN_SHEET, ANN_HEADERS, [['', 'Dini', ANN_DEFAULT]]));
+  const annLast = annRows[annRows.length - 1] || {};
+  const announcements = { text: String(annLast['Announcements'] || ''), by: annLast['By'] || '', at: annLast['Saved At'] || '' };
+
+  // Entries: latest overall (the page starts from it), plus the last entry of
+  // each earlier day for history.
   const ups = readRows(plainSheet(ss, UPD_SHEET, UPD_HEADERS));
   const parse = j => { try { return JSON.parse(j || '{}'); } catch (e) { return {}; } };
-  let update = null;
-  const recent = [];
-  ups.forEach(r => {
-    const d = fmt(r['Date']);
-    const o = {
-      date: d, hosts: r['Hosts'], new: r['New'], ret: r['Return'], member: r['Member'], total: r['Total'],
-      sales: parse(r['Sales']), notes: r['Notes'], equipment: parse(r['Equipment']),
-      equipmentNotes: parse(r['Equipment Notes']), restock: r['Restock Requested'], incidents: r['Incidents'],
-    };
-    if (d === today) update = o; else if (d < today) recent.push(o);
+  const entries = ups.map(r => ({
+    date: fmt(r['Date']), at: r['Saved At'], host: r['Host'], new: r['New'], ret: r['Return'], member: r['Member'],
+    total: r['Total'], sales: parse(r['Sales']), notes: r['Notes'], poolEquipment: parse(r['Pool Equipment']),
+    opened: r['Opened'], closed: r['Closed'], incidents: r['Incidents'],
+  }));
+  const latest = entries[entries.length - 1] || null;
+  const byDay = {};
+  entries.forEach(e => {
+    const d = byDay[e.date] = byDay[e.date] || { last: null, hosts: [], incidents: [], opened: [], closed: [], count: 0 };
+    d.last = e; d.count++;
+    if (e.host && d.hosts.indexOf(e.host) < 0) d.hosts.push(e.host);
+    String(e.incidents || '').split(/;\s*/).filter(Boolean).forEach(x => { if (d.incidents.indexOf(x) < 0) d.incidents.push(x); });
+    String(e.opened || '').split(/;\s*/).filter(Boolean).forEach(x => { if (d.opened.indexOf(x) < 0) d.opened.push(x); });
+    String(e.closed || '').split(/;\s*/).filter(Boolean).forEach(x => { if (d.closed.indexOf(x) < 0) d.closed.push(x); });
   });
-  recent.sort((a, b) => a.date < b.date ? 1 : -1);
+  const recent = Object.keys(byDay).filter(d => d < today).sort().reverse().slice(0, 7).map(d => {
+    const x = byDay[d];
+    return Object.assign({}, x.last, { hosts: x.hosts.join(', '), incidents: x.incidents.join('; '), opened: x.opened.join('; '), closed: x.closed.join('; '), entries: x.count });
+  });
+  const todayInfo = byDay[today] ? { hosts: byDay[today].hosts.join(', '), entries: byDay[today].count } : null;
 
-  // Open restock requests
-  const restockOpen = readRows(plainSheet(ss, RESTOCK_SHEET, RESTOCK_HEADERS))
+  // Open items (restock + needs fixing) — carry over until closed
+  const openItems = readRows(plainSheet(ss, OPEN_SHEET, OPEN_HEADERS))
     .filter(r => String(r['Status']).toLowerCase() === 'open')
-    .map(r => ({ item: r['Item'], since: fmt(r['Requested']), by: r['Requested By'] }));
+    .map(r => ({ kind: r['Kind'], item: r['Item'], detail: r['Detail'], since: fmt(r['Opened']), by: r['Opened By'] }));
 
   // Pool status today (same data the water log uses)
   const pools = JSON.parse(getTodayStatus().getContent()).status || {};
 
   // Equipment checks: today's entries, and issues still open (latest entry = Issue, last 7 days)
   const eq = ss.getSheetByName(EQUIP_SHEET);
-  const checksToday = [], latest = {};
+  const checksToday = [], latestCheck = {};
   if (eq && eq.getLastRow() >= 2) {
     const vals = eq.getDataRange().getValues();
     const h = vals[0].map(x => String(x).trim().toLowerCase());
@@ -837,17 +859,22 @@ function getDailyUpdate() {
       if (isNaN(dt.getTime())) return;
       const e = { date: Utilities.formatDate(dt, tz, 'yyyy-MM-dd'), t: dt.getTime(), frequency: String(r[c('frequency')]),
                   item: String(r[c('item')]), id: String(r[c('item id')]), pool: String(r[c('pool')] || ''),
-                  result: String(r[c('result')]), notes: String(r[c('notes')] || '') };
+                  result: String(r[c('result')]), value: String(r[c('value')] || ''), notes: String(r[c('notes')] || ''),
+                  by: String(r[c('recorded by')] || '') };
       if (e.date === today && e.frequency !== 'Settings' && e.frequency !== 'Adjustment') checksToday.push(e);
       const k = e.id + '|' + e.pool;
-      if (!latest[k] || e.t >= latest[k].t) latest[k] = e;
+      if (!latestCheck[k] || e.t >= latestCheck[k].t) latestCheck[k] = e;
     });
   }
+  // Latest entry per pool-equipment check, whatever the date — status
+  // carries over until someone re-checks it.
+  const CARRY = { 'ips-status':1, 'pool-equip':1, 'filter-psi':1, 'cl-barrel':1, 'acid-barrel':1 };
+  const latestChecks = Object.keys(latestCheck).map(k => latestCheck[k]).filter(e => CARRY[e.id]);
   const weekAgo = Utilities.formatDate(new Date(Date.now() - 7 * 86400000), tz, 'yyyy-MM-dd');
-  const openIssues = Object.keys(latest).map(k => latest[k]).filter(e => e.result === 'Issue' && e.date >= weekAgo);
+  const openIssues = Object.keys(latestCheck).map(k => latestCheck[k]).filter(e => e.result === 'Issue' && e.date >= weekAgo);
 
-  return jsonResponse({ success: true, today, update, recent: recent.slice(0, 7), lists, restockOpen,
-                        pools, checks: { today: checksToday, openIssues } });
+  return jsonResponse({ success: true, today, latest, todayInfo, recent, lists, announcements, openItems,
+                        pools, checks: { today: checksToday, openIssues, latest: latestChecks } });
 }
 
 function saveDailyUpdate(data) {
@@ -864,44 +891,50 @@ function saveDailyUpdate(data) {
     filed = saveIncidentRows(data.incidents_new || [], data.staff, today, tz);
     const incSummary = (data.incidents_new || []).map(x => filed[x.sid] ? filed[x.sid] + ' · ' + x.type + ' · ' + x.location : '').filter(Boolean);
 
-    // ── the day's row (upsert) ──
-    const sh   = plainSheet(ss, UPD_SHEET, UPD_HEADERS);
-    const rows = readRows(sh);
-    const fmt  = d => d instanceof Date ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d).substring(0, 10);
-    const existing = rows.filter(r => fmt(r['Date']) === today).pop();
-    const hosts = (existing ? String(existing['Hosts']).split(/,\s*/) : []).filter(Boolean);
-    if (data.staff && hosts.indexOf(data.staff) < 0) hosts.push(data.staff);
+    // ── new entry (every save is kept) ──
+    const sh = plainSheet(ss, UPD_SHEET, UPD_HEADERS);
     const c = data.counts || {};
     const n = v => Math.max(0, parseInt(v, 10) || 0);
     const total = n(c.new) + n(c.ret) + n(c.member);
-    const prevReq = existing ? String(existing['Restock Requested']).split(/,\s*/).filter(Boolean) : [];
-    (data.restock_add || []).forEach(i => { if (prevReq.indexOf(i) < 0) prevReq.push(i); });
-    const row = [today, stamp, hosts.join(', '), n(c.new), n(c.ret), n(c.member), total,
-                 JSON.stringify(data.sales || {}), prevReq.join(', '), String(data.notes || ''),
-                 JSON.stringify(data.equipment || {}), JSON.stringify(data.equipment_notes || {}),
-                 mergeList(existing ? existing['Incidents'] : '', incSummary)].map(String);
-    const r = existing ? existing._row : sh.getLastRow() + 1;
-    sh.getRange(r, 1, 1, row.length).setNumberFormat('@').setValues([row]);
+    const row = [today, stamp, String(data.staff || ''), n(c.new), n(c.ret), n(c.member), total,
+                 JSON.stringify(data.sales || {}),
+                 (data.open_add || []).map(o => o.item + (o.detail ? ' (' + o.detail + ')' : '')).join('; '),
+                 (data.open_close || []).map(o => o.item).join('; '), String(data.notes || ''),
+                 JSON.stringify(data.pool_equipment || {}), incSummary.join('; ')].map(String);
+    sh.getRange(sh.getLastRow() + 1, 1, 1, row.length).setNumberFormat('@').setValues([row]);
 
-    // ── restock requests ──
-    const rs = plainSheet(ss, RESTOCK_SHEET, RESTOCK_HEADERS);
-    const open = readRows(rs).filter(x => String(x['Status']).toLowerCase() === 'open');
-    (data.restock_done || []).forEach(item => {
-      open.filter(x => x['Item'] === item).forEach(x => {
-        rs.getRange(x._row, 2).setValue('Done');
-        rs.getRange(x._row, 5, 1, 2).setNumberFormat('@').setValues([[today, String(data.staff || '')]]);
+    // ── open items (restock / needs fixing) ──
+    const os = plainSheet(ss, OPEN_SHEET, OPEN_HEADERS);
+    const open = readRows(os).filter(x => String(x['Status']).toLowerCase() === 'open');
+    const same = (x, o) => String(x['Kind']) === String(o.kind) && String(x['Item']) === String(o.item);
+    (data.open_close || []).forEach(o => {
+      open.filter(x => same(x, o)).forEach(x => {
+        os.getRange(x._row, 4).setValue('Closed');
+        os.getRange(x._row, 7, 1, 2).setNumberFormat('@').setValues([[today, String(data.staff || '')]]);
       });
     });
-    const add = (data.restock_add || []).filter(item => !open.some(x => x['Item'] === item));
-    if (add.length) {
-      const start = rs.getLastRow() + 1;
-      rs.getRange(start, 1, add.length, RESTOCK_HEADERS.length).setNumberFormat('@')
-        .setValues(add.map(item => [String(item), 'Open', today, String(data.staff || ''), '', '']));
-    }
+    (data.open_add || []).forEach(o => {
+      const ex = open.filter(x => same(x, o)).pop();
+      if (ex) {   // already open — just update the detail if it changed
+        if (o.detail && o.detail !== ex['Detail']) os.getRange(ex._row, 3).setNumberFormat('@').setValue(String(o.detail));
+        return;
+      }
+      os.getRange(os.getLastRow() + 1, 1, 1, OPEN_HEADERS.length).setNumberFormat('@')
+        .setValues([[String(o.kind), String(o.item), String(o.detail || ''), 'Open', today, String(data.staff || ''), '', '']]);
+    });
   } finally {
     lock.releaseLock();
   }
   return jsonResponse({ success: true, saved: today, incident_ids: filed });
+}
+
+function saveAnnouncements(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const tz = Session.getScriptTimeZone();
+  const sh = plainSheet(ss, ANN_SHEET, ANN_HEADERS, [['', 'Dini', ANN_DEFAULT]]);
+  const row = [Utilities.formatDate(new Date(), tz, 'M/d/yyyy h:mm a'), String(data.staff || ''), String(data.text || '')];
+  sh.getRange(sh.getLastRow() + 1, 1, 1, 3).setNumberFormat('@').setValues([row]);
+  return jsonResponse({ success: true });
 }
 
 function mergeList(prev, add) {

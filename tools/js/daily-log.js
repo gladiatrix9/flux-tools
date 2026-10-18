@@ -130,9 +130,11 @@ async function savePool(poolId) {
 
 // ─── TAB SWITCHING ───────────────────────────────────────────
 function switchTab(id) {
+  if (!document.getElementById('panel-' + id)) return;
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === id);
   });
+  try { history.replaceState(null, '', '#' + id); } catch (e) {}
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
 }
@@ -241,3 +243,9 @@ async function sendDailySummary() {
 
 // ─── AUTO DATE ───────────────────────────────────────────────
 
+
+// Open the tab named in the URL, e.g. log.html#equipment (used by the home page).
+(function() {
+  const id = (location.hash || '').slice(1);
+  if (id) switchTab(id);
+})();

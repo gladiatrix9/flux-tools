@@ -20,6 +20,16 @@ const EQUIP_POOL_NAMES = {
   'so-hot':'Solstice Hot',      'so-cold':'Solstice Cold',
 };
 
+// Parts that make up each pool's system (O&M drawings: jet pumps on the
+// three hot soaks only; heaters on hot soaks, chillers on cold plunges;
+// a Stenner Classic peristaltic pump each for chlorine and acid).
+function POOL_EQUIP_PICKS(pool) {
+  const hot = /-hot$/.test(pool);
+  return ['Circulation pump'].concat(hot ? ['Jet pump'] : [])
+    .concat(['Filter', 'UV unit', hot ? 'Heater' : 'Chiller',
+             'Stenner pump (chlorine)', 'Stenner pump (acid)', 'Chlorine feed line', 'Acid feed line']);
+}
+
 const LUCID_NOTE = '<span class="eq-lucid-note">Lucid does this — hosts don\'t. Log it here once Lucid confirms it\'s done.</span> ';
 
 const EQUIP_SCHEDULE = [
@@ -31,14 +41,9 @@ const EQUIP_SCHEDULE = [
       detail:'Estimate how full it is (%) — the tool compares with past readings, and <strong>using more than usual is an early sign of a leak</strong>. Tell Dini when it\'s under ¼. Lid on. Refilled it? Enter the new level and note "refilled".' },
     { id:'acid-barrel', name:'Acid barrel', value:{ label:'Level', unit:'%', ph:'50' }, usage:true,
       detail:'Estimate how full it is (%) — compared with past readings like the chlorine barrel. Tell Dini when it\'s under ¼. Lid on.' },
-    { id:'stenner-tubes', name:'Stenner pumps & suction lines', howto:'feedCheck',
-      detail:'Through each clear cover: no drips or chemical inside, pump tube not flattened, cracked or weeping. Each suction line sitting in the liquid, weighted strainer clean and 2–3 in. above the barrel bottom.' },
-    { id:'feed-lines', name:'Feed tubing',
-      detail:'Tubing from each pump to its injection point: not kinked, cracked, crusted with white crystals, wet, or full of air.' },
-    { id:'injection-points', name:'Injection points',
-      detail:'Where the chlorine and acid tubing enters each pool\'s plumbing: no white crystal buildup, no drips, no wet spots. Report anything — cleaning needs the line isolated (Lucid).' },
-    { id:'circulation', name:'Pumps, filters & UV',
-      detail:'Circulation pumps running and sounding normal. No leaks at pumps, filters, valves or UV units. UV power lights on.' },
+    { id:'pool-equip', perPool:true, name:'Pool equipment', howto:'feedCheck',
+      picks: function(pool) { return POOL_EQUIP_PICKS(pool); },
+      detail:'For each pool, walk its equipment: <strong>circulation pump</strong> running and sounding normal · <strong>jet pump</strong> (hot soaks) · <strong>filter</strong> — no leaks · <strong>UV unit</strong> power light on · <strong>heater / chiller</strong> running · <strong>Stenner pumps</strong> (chlorine &amp; acid peristaltic pumps) — no drips inside the clear cover, pump tube not flattened or weeping · <strong>chlorine &amp; acid feed lines</strong> — tubing not kinked, cracked, crusty or full of air, injection point dry with no white crystals. Mark Issue and tap the part that\'s wrong.' },
   ]},
   { key:'Weekly', days:7, who:'Host', title:'Weekly', items:[
     { id:'filter-psi', perPool:true, name:'Filter pressure', value:{ label:'Gauge', unit:'psi', ph:'12' },
@@ -125,8 +130,9 @@ function equipRender() {
           : '';
         const rn = equipRowNote(it, pool, s);
         const fnote = rn ? '<div class="eq-fnote' + (rn.indexOf('⚠') === 0 ? ' warn' : '') + '">' + rn + '</div>' : '';
+        const pickList = typeof it.picks === 'function' ? it.picks(pool) : (it.picks || []);
         const picks = (it.picks && s.result === 'Issue')
-          ? '<div class="eq-picks">' + it.picks.map(function(pk) {
+          ? '<div class="eq-picks">' + pickList.map(function(pk) {
               const on = (s.picks || []).indexOf(pk) >= 0;
               return '<button class="eq-pick' + (on ? ' on' : '') + '" onclick="equipTogglePick(\'' + k + '\',\'' + pk + '\')">' + pk + '</button>';
             }).join('') + '</div>'

@@ -194,3 +194,5 @@ footer { background: var(--navy); color: rgba(255,255,255,0.3); text-align: cent
   .confirm-body dl { grid-template-columns: 1fr; gap: 0.15rem; }
   .confirm-body dt { padding-top: 0.5rem; }
 }
+
+.tab-btn.home { color: rgba(255,255,255,0.75); }
