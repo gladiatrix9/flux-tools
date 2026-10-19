@@ -71,7 +71,7 @@
     const subId = bar.dataset.subId;
     bar.className = 'fx-bar';
     bar.innerHTML =
-      '<a class="fx-logo" href="/service/index.html" title="Staff home">FLUX</a>' +
+      '<a class="fx-logo" href="/service/index.html" title="Staff home"><img src="/service/assets/flux-logo.svg" alt="Flux Thermal Lounge — home"></a>' +
       '<div class="fx-title"><span class="fx-tool">' + esc(NAMES[tool] || bar.dataset.name || '') + '</span>' +
         (subId ? '<span class="fx-sub" id="' + esc(subId) + '"></span>' : '') + '</div>' +
       '<button class="fx-btn" id="fx-menu-btn" aria-haspopup="true" aria-expanded="false" aria-controls="fx-menu">' +
