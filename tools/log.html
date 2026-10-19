@@ -5,30 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Flux · Daily Water Testing</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=10">
+<link rel="stylesheet" href="css/app.css?v=11">
+<link rel="stylesheet" href="/service/css/nav.css?v=1">
 </head>
 <body>
 
 
-<header>
-  <div class="header-top">
-    <a href="/service/index.html" class="logo-link" title="Staff home">
-      <div class="logo-word">FLUX</div>
-      <div class="logo-sub">Thermal Lounge · Bend, OR</div>
-    </a>
-    <div class="header-title">
-      Daily Water Testing
-      <span>Taylor K-2006 · FAS-DPD Method</span>
-    </div>
-  </div>
+<header class="fx-header">
+  <div id="fx-topbar" data-tool="water"></div>
   <div class="tabs">
-    <a class="tab-btn home" href="/service/index.html">⌂ Home</a>
     <button class="tab-btn active" data-tab="howto" onclick="switchTab('howto')">How to Test</button>
     <button class="tab-btn" data-tab="log" onclick="switchTab('log')">Log Results</button>
     <button class="tab-btn" data-tab="weekly" onclick="switchTab('weekly')">Weekly Parameters</button>
     <button class="tab-btn" data-tab="equipment" onclick="switchTab('equipment')">Equipment</button>
     <button class="tab-btn" data-tab="reference" onclick="switchTab('reference')">Reference</button>
-    <a class="tab-btn cross" href="/service/updates.html">Daily Update ↗</a>
   </div>
 </header>
 
@@ -1110,15 +1100,16 @@
 
 <footer>FLUX THERMAL LOUNGE · DAILY WATER TESTING · TAYLOR K-2006</footer>
 
-<script src="js/config.js?v=10"></script>
-<script src="js/reference-data.js?v=10"></script>
-<script src="js/ips-howto.js?v=10"></script>
-<script src="js/lsi-calc.js?v=10"></script>
-<script src="js/pool-calc.js?v=10"></script>
-<script src="js/daily-log.js?v=10"></script>
-<script src="js/wizard-engine.js?v=10"></script>
-<script src="js/weekly-params.js?v=10"></script>
-<script src="js/equipment-checks.js?v=10"></script>
+<script src="js/config.js?v=11"></script>
+<script src="/service/js/nav.js?v=1"></script>
+<script src="js/reference-data.js?v=11"></script>
+<script src="js/ips-howto.js?v=11"></script>
+<script src="js/lsi-calc.js?v=11"></script>
+<script src="js/pool-calc.js?v=11"></script>
+<script src="js/daily-log.js?v=11"></script>
+<script src="js/wizard-engine.js?v=11"></script>
+<script src="js/weekly-params.js?v=11"></script>
+<script src="js/equipment-checks.js?v=11"></script>
 
 </body>
 </html>

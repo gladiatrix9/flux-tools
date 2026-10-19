@@ -6,26 +6,12 @@
 <title>Flux · Incident Report</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css?v=2">
+<link rel="stylesheet" href="/service/css/nav.css?v=1">
 </head>
 <body>
 
-<header>
-  <div class="header-top">
-    <div>
-      <a href="/service/index.html" title="Staff home"><img class="logo-mark" src="assets/flux-logo.svg" alt="Flux Thermal Lounge"></a>
-    </div>
-    <div class="header-title">
-      Alcohol Service
-      <span>Host Portal · Incident Reporting</span>
-    </div>
-  </div>
-  <div class="tabs">
-    <a class="tab-btn home" href="/service/index.html">⌂ Home</a>
-    <a class="tab-btn" href="updates.html">Daily Update</a>
-    <a class="tab-btn" href="wiki.html">Guide</a>
-    <a class="tab-btn active" href="incident.html">Incident Report</a>
-    <a class="tab-btn cross" href="/tools/log.html">Water Testing</a>
-  </div>
+<header class="fx-header">
+  <div id="fx-topbar" data-tool="incident" data-name="Incident Report"></div>
 </header>
 
 <main>
@@ -354,6 +340,7 @@
 <footer>Flux Thermal Lounge · Bend, OR · Hosts Only</footer>
 
 <script src="js/config.js?v=5"></script>
+<script src="/service/js/nav.js?v=1"></script>
 <script src="js/incident.js?v=2"></script>
 </body>
 </html>

@@ -342,8 +342,8 @@
         <span class="tile-arrow">→</span>
       </a>
       <a class="tile" href="/service/wiki.html">
-        <span class="tile-icon">📖</span>
-        <span class="tile-body"><span class="tile-name">Guide</span><span class="tile-status">Alcohol service &amp; compliance</span></span>
+        <span class="tile-icon">🍷</span>
+        <span class="tile-body"><span class="tile-name">Alcohol Service</span><span class="tile-status">Guide &amp; compliance</span></span>
         <span class="tile-arrow">→</span>
       </a>
       <button class="signout" onclick="signOut()">Sign out of this device</button>
@@ -353,6 +353,7 @@
     Flux Thermal Lounge · Bend, OR · Staff Only
   </div>
 </div>
+<script src="/service/js/nav.js?v=1"></script>
 <style>
   .tile { display: flex; align-items: center; gap: 0.85rem; padding: 0.95rem 1rem; margin-bottom: 0.6rem; border-radius: 12px;
           background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); color: white; text-decoration: none;
@@ -362,7 +363,7 @@
   .tile-body { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; }
   .tile-name { font-family: 'DM Mono', monospace; font-size: 0.9rem; letter-spacing: 0.06em; }
   .tile-status { font-size: 0.76rem; color: rgba(255,255,255,0.62); line-height: 1.4; }
-  .tile-status .warn { color: #f5c26b; } .tile-status .bad { color: #ff9a8f; } .tile-status .ok { color: #8fd9c4; }
+  .tile-status .fx-warn { color: #f5c26b; } .tile-status .fx-bad { color: #ff9a8f; } .tile-status .fx-ok { color: #8fd9c4; }
   .tile-arrow { color: var(--salmon); font-size: 1.05rem; }
   .signout { display: block; margin: 0.9rem auto 0; background: none; border: none; color: rgba(255,255,255,0.4);
              font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
@@ -376,7 +377,6 @@
   // Note: the code lives in this page's source — it keeps casual visitors
   // out, it isn't real security.
   const ACCESS_CODE = '145145';
-  const WATER_URL = 'https://script.google.com/macros/s/AKfycbxvQ9EI8IFGukipsQlM6rCdBhP2lCBjTTLdb9T2ISyUx3c-aQ9PpG8IsJQFPe5yaHhojg/exec';
 
   function signedIn() {
     try { return localStorage.getItem('flux-auth') === 'ok' || sessionStorage.getItem('flux-auth') === 'ok'; } catch (e) { return false; }
@@ -393,32 +393,13 @@
     loadStatus();
   }
 
-  // Small status line under each tile (needs the water-testing script).
+  // Status lines under each tile — same code as the Tools menu (nav.js).
   async function loadStatus() {
     try {
-      const c = await (await fetch(WATER_URL + '?action=getDailyUpdate')).json();
-      if (!c.success) return;
-      const today = c.today, span = (cls, t) => '<span class="' + cls + '">' + t + '</span>';
-      // Daily Update
-      const L = c.latest, open = c.openItems || [];
-      const fix = open.filter(o => o.kind === 'fix').length, rs = open.filter(o => o.kind === 'restock').length;
-      let u = L && L.date === today
-        ? span('ok', 'Updated ' + String(L.at || '').replace(/^\S+\s/, '') + (L.host ? ' by ' + L.host : ''))
-        : span('warn', 'Not updated yet today');
-      if (fix || rs) u += ' · ' + [fix ? fix + ' to fix' : '', rs ? rs + ' to restock' : ''].filter(Boolean).join(', ');
-      document.getElementById('st-update').innerHTML = u;
-      // Water Testing
-      const pools = Object.values(c.pools || {});
-      const tested = pools.filter(p => p.saved).length;
-      const att = pools.filter(p => p.saved && /attention/i.test(p.status || '')).length;
-      document.getElementById('st-water').innerHTML =
-        span(tested === 6 ? 'ok' : 'warn', tested + ' of 6 pools tested today') + (att ? ' · ' + span('bad', att + ' need attention') : '');
-      // Equipment Checks (daily: IPS + pool equipment per pool, plus 2 barrels)
-      const tdy = (c.checks && c.checks.today) || [];
-      const keys = new Set(tdy.filter(e => ['ips-status', 'pool-equip', 'cl-barrel', 'acid-barrel'].indexOf(e.id) >= 0).map(e => e.id + '|' + e.pool));
-      const issues = ((c.checks && c.checks.latest) || []).filter(e => e.result === 'Issue').length;
-      document.getElementById('st-equip').innerHTML =
-        span(keys.size >= 14 ? 'ok' : 'warn', 'Daily checks ' + Math.min(keys.size, 14) + ' of 14 done') + (issues ? ' · ' + span('bad', issues + ' open issue' + (issues > 1 ? 's' : '')) : '');
+      const st = FX.statusLines(await FX.fetchStatus());
+      if (st.update)    document.getElementById('st-update').innerHTML = st.update;
+      if (st.water)     document.getElementById('st-water').innerHTML = st.water;
+      if (st.equipment) document.getElementById('st-equip').innerHTML = st.equipment;
     } catch (e) { /* status lines are a nice-to-have */ }
   }
 

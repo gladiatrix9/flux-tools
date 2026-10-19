@@ -6,26 +6,13 @@
 <title>Flux · Daily Update</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css?v=3">
+<link rel="stylesheet" href="/service/css/nav.css?v=1">
 <link rel="stylesheet" href="css/updates.css?v=3">
 </head>
 <body>
 
-<header>
-  <div class="header-top">
-    <div>
-      <a href="/service/index.html" title="Staff home"><img class="logo-mark" src="assets/flux-logo.svg" alt="Flux Thermal Lounge"></a>
-    </div>
-    <div class="header-title">
-      Daily Update
-      <span id="hdr-date">Host Portal</span>
-    </div>
-  </div>
-  <div class="tabs">
-    <a class="tab-btn home" href="/service/index.html">⌂ Home</a>
-    <a class="tab-btn active" href="updates.html">Daily Update</a>
-    <a class="tab-btn" href="wiki.html">Guide</a>
-    <a class="tab-btn cross" href="/tools/log.html">Water Testing</a>
-  </div>
+<header class="fx-header">
+  <div id="fx-topbar" data-tool="update" data-sub-id="hdr-date"></div>
 </header>
 
 <main>
@@ -167,6 +154,7 @@
 </div>
 
 <script src="js/config.js?v=5"></script>
+<script src="/service/js/nav.js?v=1"></script>
 <script src="js/updates.js?v=3"></script>
 </body>
 </html>

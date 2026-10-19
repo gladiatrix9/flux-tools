@@ -1,0 +1,40 @@
+/* ─── SHARED TOP BAR (service/js/nav.js) — identical on every staff page ─── */
+.fx-bar { position: relative; display: flex; align-items: center; gap: 0.9rem; padding: 0.95rem 0; }
+.fx-logo { font-family: 'DM Mono', monospace; font-size: 1.35rem; letter-spacing: 0.14em; color: #c0dcf5; text-decoration: none; line-height: 1; }
+.fx-title { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fx-tool { font-family: 'DM Mono', monospace; font-size: 0.9rem; color: rgba(255,255,255,0.92); letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-sub { font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.fx-sub:empty { display: none; }
+.fx-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: transparent; border: 1px solid rgba(255,255,255,0.35);
+          border-radius: 8px; padding: 0.45rem 0.8rem; color: white; font-family: 'DM Mono', monospace; font-size: 0.75rem;
+          letter-spacing: 0.06em; cursor: pointer; }
+.fx-btn:hover, .fx-btn.open { background: rgba(255,255,255,0.1); }
+.fx-burger { position: relative; width: 14px; height: 2px; background: currentColor; border-radius: 1px; }
+.fx-burger::before, .fx-burger::after { content: ''; position: absolute; left: 0; width: 14px; height: 2px; background: currentColor; border-radius: 1px; }
+.fx-burger::before { top: -5px; } .fx-burger::after { top: 5px; }
+.fx-btn.open .fx-burger { background: transparent; }
+.fx-btn.open .fx-burger::before { top: 0; transform: rotate(45deg); }
+.fx-btn.open .fx-burger::after  { top: 0; transform: rotate(-45deg); }
+
+.fx-menu { position: absolute; top: calc(100% - 4px); right: 0; z-index: 2000; width: 280px; max-width: calc(100vw - 2rem);
+           background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,30,50,0.25); padding: 6px; }
+.fx-menu[hidden] { display: none; }
+.fx-item { display: flex; gap: 0.7rem; align-items: center; padding: 0.6rem 0.7rem; border-radius: 8px; color: #1a2331;
+           text-decoration: none; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; width: 100%; background: none; border: none;
+           text-align: left; cursor: pointer; }
+.fx-item:hover { background: #f5ede6; }
+.fx-item.on { background: #eaf4f1; color: #006b5b; font-weight: 600; }
+.fx-item small { display: block; font-weight: 400; font-size: 0.72rem; color: #6b7a8d; margin-top: 1px; line-height: 1.35; }
+.fx-ic { width: 1.4rem; text-align: center; flex-shrink: 0; }
+.fx-sep { height: 1px; background: #eee6dc; margin: 4px 8px; }
+.fx-dim { color: #6b7a8d; font-size: 0.8rem; justify-content: center; }
+.fx-ok { color: #006b5b; } .fx-warn { color: #b85c00; } .fx-bad { color: #c0282e; }
+
+/* page headers that use the shared bar */
+header.fx-header { padding: 0 1.5rem; }
+header.fx-header .tabs { margin: 0 -0.25rem; }
+@media (max-width: 520px) {
+  header.fx-header { padding: 0 1rem; }
+  .fx-logo { font-size: 1.15rem; }
+  .fx-btn { padding: 0.45rem 0.65rem; }
+}

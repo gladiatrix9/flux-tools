@@ -246,6 +246,7 @@ async function sendDailySummary() {
 
 // Open the tab named in the URL, e.g. log.html#equipment (used by the home page).
 (function() {
-  const id = (location.hash || '').slice(1);
-  if (id) switchTab(id);
+  const go = () => { const id = (location.hash || '').slice(1); if (id) switchTab(id); };
+  go();
+  window.addEventListener('hashchange', go);   // e.g. Tools menu → Equipment Checks
 })();
