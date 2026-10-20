@@ -20,7 +20,7 @@ const WATER_URL = 'https://script.google.com/macros/s/AKfycbxvQ9EI8IFGukipsQlM6r
 
 // Staff roster for "Reported By". The water testing page keeps its own
 // roster (tools/log.html); update both if a host is added or removed.
-const STAFF = ['Dini', 'Elizabeth', 'Elise', 'Gigi', 'Mark', 'Meredith', 'Michael', 'Nate', 'Sarah', 'Zach'];
+const STAFF = ['Ava', 'Dini', 'Elizabeth', 'Mark', 'Meredith', 'Michael', 'Nate', 'Sarah', 'Zach'];
 
 // Managers who can be notified of an incident — the only names offered in
 // the "Manager Notified" dropdown.

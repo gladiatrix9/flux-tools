@@ -57,7 +57,7 @@ header { background: var(--navy); padding: 1.5rem 2rem 0; }
 
 /* ─── SESSION BAR ─── */
 .session-required-msg { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--alert); letter-spacing: 0.06em; margin-top: 0.3rem; display: none; }
-.session-field select.required-error { border-color: var(--alert); box-shadow: 0 0 0 2px rgba(192,40,46,0.15); }
+.session-field select.required-error, .eq-staff-bar select.required-error { border-color: var(--alert); box-shadow: 0 0 0 2px rgba(192,40,46,0.15); }
 .session-bar { background: white; border-bottom: 1px solid var(--border); padding: 0.8rem 2rem; display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap; }
 .session-field { display: flex; flex-direction: column; gap: 3px; }
 .session-field label { font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }

@@ -71,7 +71,8 @@ async function fetchWeeklyParams() {
       if (row.updated && wprUpd) {
         const updDate = new Date(row.updated);
         const isStale = !isNaN(updDate.getTime()) && updDate < lastMon;
-        wprUpd.textContent = fmtDay(row.updated) + (isStale ? ' ⚠ Update needed' : '');
+        wprUpd.textContent = fmtDay(row.updated) + (row.updatedBy ? ' · ' + row.updatedBy : '') +
+          (isStale ? ' ⚠ Update needed' : '');
         wprUpd.style.color = isStale ? 'var(--warn)' : '';
       }
     });
@@ -206,6 +207,17 @@ async function weeklyParamsSave() {
   const status = document.getElementById('weekly-save-status');
   const pools  = ['sl-hot','sl-cold','eq-hot','eq-cold','so-hot','so-cold'];
 
+  // Name is required, same as the Log and Equipment tabs.
+  const staffEl  = document.getElementById('weekly-staff');
+  const staffMsg = document.getElementById('weekly-staff-msg');
+  const staff    = (staffEl && staffEl.value) || '';
+  if (!staff) {
+    if (staffEl) { staffEl.classList.add('required-error'); staffEl.focus(); }
+    if (staffMsg) staffMsg.style.display = 'inline';
+    return;
+  }
+  if (staffMsg) staffMsg.style.display = 'none';
+
   // Collect all values
   const entries = pools.map(pid => ({
     pool_id: pid,
@@ -228,11 +240,11 @@ async function weeklyParamsSave() {
   // Apply success UI: update timestamps, sync hidden inputs, recalc LSI
   function applyWeeklySaveSuccess() {
     pools.forEach(pid => {
-      const updEl = document.getElementById('wpr-'+pid+'-updated');
-      if (updEl) updEl.textContent = now;
       // Sync to pool card hidden inputs
       const ca  = document.getElementById('wpr-'+pid+'-calcium')?.value;
       const tds = document.getElementById('wpr-'+pid+'-tds')?.value;
+      const updEl = document.getElementById('wpr-'+pid+'-updated');
+      if (updEl) { updEl.textContent = now + ((ca || tds) ? ' · ' + staff : ''); updEl.style.color = ''; }
       if (ca)  { const hid = document.getElementById(pid+'-calcium'); if (hid) hid.value = ca; }
       if (tds) { const hid = document.getElementById(pid+'-tds');     if (hid) hid.value = tds; }
       const chtdsUpd = document.getElementById(pid+'-chtds-updated');
@@ -246,7 +258,7 @@ async function weeklyParamsSave() {
         const psRow = _poolStateParams[pid] || {};
         if (ca)  { wpRow.calcium = ca;  psRow.calcium = ca; }
         if (tds) { wpRow.tds     = tds; psRow.tds     = tds; }
-        wpRow.updated = now; psRow.updated = now; psRow.source = 'weekly';
+        wpRow.updated = now; wpRow.updatedBy = staff; psRow.updated = now; psRow.source = 'weekly';
         _weeklyParams[pid]    = wpRow;
         _poolStateParams[pid] = psRow;
       }
@@ -266,7 +278,7 @@ async function weeklyParamsSave() {
     const res  = await fetch(SCRIPT_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body:    JSON.stringify({ action: 'saveWeeklyParams', entries }),
+      body:    JSON.stringify({ action: 'saveWeeklyParams', staff, entries }),
     });
     const json = await res.json();
     if (!json.success) throw new Error(json.error || 'Save failed');
@@ -299,3 +311,18 @@ function wizJumpTo(pid, stepIndex) {
   wizRender(pid);
   wizSaveLocal(pid);
 }
+
+// ─── RECORDED BY (kept in sync with the Log and Equipment tabs) ───
+(function initWeeklyStaff() {
+  const sel  = document.getElementById('weekly-staff');
+  const main = document.getElementById('session-staff');
+  if (!sel || !main) return;
+  sel.innerHTML = main.innerHTML;
+  sel.value = main.value;
+  sel.addEventListener('change', function() {
+    sel.classList.remove('required-error');
+    const m = document.getElementById('weekly-staff-msg'); if (m) m.style.display = 'none';
+    main.value = sel.value; main.dispatchEvent(new Event('change'));
+  });
+  main.addEventListener('change', function() { if (sel.value !== main.value) sel.value = main.value; });
+})();

@@ -21,7 +21,7 @@ const SUMMARY_EMAIL  = 'hello@flux-lounge.com';
 // Bump this whenever Code.gs is redeployed — every JSON response includes
 // it, so the front end (and you, via the browser console) can confirm the
 // live deployment is actually running this version.
-const BACKEND_VERSION = '2026-10-16-daily-update-v1';
+const BACKEND_VERSION = '2026-10-20-weekly-name-v1';
 
 const POOL_LABELS = {
   'sl-hot':  'Social Lounge — Hot Soak',
@@ -179,6 +179,7 @@ function getWeeklyParams() {
   const caCol  = header.indexOf('calcium hardness (ppm)');
   const tdsCol = header.indexOf('tds (ppm)');
   const updCol = header.indexOf('last updated');
+  const byCol  = header.indexOf('updated by');
 
   if (pidCol < 0 || caCol < 0 || tdsCol < 0) {
     return jsonResponse({ success: false, error: 'Column missing in Weekly Parameters' });
@@ -190,9 +191,10 @@ function getWeeklyParams() {
     const pid = String(row[pidCol]).trim();
     if (!pid) continue;
     params[pid] = {
-      calcium: row[caCol]  || '',
-      tds:     row[tdsCol] || '',
-      updated: updCol >= 0 ? String(row[updCol] || '').trim() : '',
+      calcium:   row[caCol]  || '',
+      tds:       row[tdsCol] || '',
+      updated:   updCol >= 0 ? String(row[updCol] || '').trim() : '',
+      updatedBy: byCol  >= 0 ? String(row[byCol]  || '').trim() : '',
     };
   }
 
@@ -350,9 +352,12 @@ function saveWeeklyParams(data) {
   const entries = data.entries || [];
   const ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'M/d/yyyy, h:mm:ss a');
 
+  const staff = String(data.staff || '').trim();
+  if (!staff) return jsonResponse({ success: false, error: 'Name is required' });
+
   entries.forEach(function(entry) {
     if (entry.pool_id) {
-      updateWeeklyParams(ss, entry.pool_id, entry.calcium, entry.tds, ts);
+      updateWeeklyParams(ss, entry.pool_id, entry.calcium, entry.tds, ts, staff);
       updatePoolState(ss, entry.pool_id, entry.calcium, entry.tds, ts, 'weekly');
     }
   });
@@ -364,17 +369,27 @@ function saveWeeklyParams(data) {
 // Writes to the "Weekly Parameters" sheet. Called only from
 // saveWeeklyParams — never from saveDailyLog.
 
-function updateWeeklyParams(ss, poolId, calcium, tds, tsStr) {
+function updateWeeklyParams(ss, poolId, calcium, tds, tsStr, staff) {
   const sheet = ss.getSheetByName('Weekly Parameters');
   if (!sheet) return;
 
-  const data   = sheet.getDataRange().getValues();
-  const header = data[0].map(h => String(h).trim().toLowerCase());
+  let data     = sheet.getDataRange().getValues();
+  let header   = data[0].map(h => String(h).trim().toLowerCase());
+
+  // Add an "Updated By" column the first time a name is saved.
+  if (header.indexOf('updated by') < 0) {
+    const col = data[0].length + 1;
+    sheet.getRange(1, col).setValue('Updated By');
+    sheet.getRange(1, col, sheet.getMaxRows(), 1).setNumberFormat('@');
+    data   = sheet.getDataRange().getValues();
+    header = data[0].map(h => String(h).trim().toLowerCase());
+  }
 
   const pidCol = header.indexOf('pool id');
   const caCol  = header.indexOf('calcium hardness (ppm)');
   const tdsCol = header.indexOf('tds (ppm)');
   const updCol = header.indexOf('last updated');
+  const byCol  = header.indexOf('updated by');
 
   if (pidCol < 0) return;
 
@@ -384,6 +399,7 @@ function updateWeeklyParams(ss, poolId, calcium, tds, tsStr) {
       if (caCol  >= 0 && calcium) sheet.getRange(row, caCol  + 1).setValue(calcium);
       if (tdsCol >= 0 && tds)     sheet.getRange(row, tdsCol + 1).setValue(tds);
       if (updCol >= 0)             sheet.getRange(row, updCol + 1).setValue(tsStr);
+      if (byCol  >= 0)             sheet.getRange(row, byCol  + 1).setValue(staff || '');
       return;
     }
   }
@@ -394,6 +410,7 @@ function updateWeeklyParams(ss, poolId, calcium, tds, tsStr) {
   if (caCol  >= 0 && calcium) newRow[caCol]  = calcium;
   if (tdsCol >= 0 && tds)     newRow[tdsCol] = tds;
   if (updCol >= 0)             newRow[updCol] = tsStr;
+  if (byCol  >= 0)             newRow[byCol]  = staff || '';
   sheet.appendRow(newRow);
 }
 

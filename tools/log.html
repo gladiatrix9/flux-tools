@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Flux · Daily Water Testing</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=11">
+<link rel="stylesheet" href="css/app.css?v=12">
 <link rel="stylesheet" href="/service/css/nav.css?v=2">
 </head>
 <body>
@@ -309,6 +309,12 @@
     </div>
   </div>
 
+  <div class="eq-staff-bar">
+    <label for="weekly-staff">Recorded By <span style="color:var(--alert)">*</span></label>
+    <select id="weekly-staff"></select>
+    <span id="weekly-staff-msg" style="display:none;color:var(--alert)">Please select your name before saving.</span>
+  </div>
+
   <div class="weekly-pool-grid">
 
     <div class="weekly-pool-header">
@@ -436,7 +442,7 @@
       <label>Recorded By <span style="color:var(--alert)">*</span></label>
       <select id="session-staff" onchange="this.classList.remove('required-error'); var m=document.getElementById('staff-required-msg'); if(m) m.style.display='none';" style="min-width:150px;border:1.5px solid var(--border);border-radius:6px;padding:0.32rem 0.65rem;font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--text);background:var(--cream);outline:none;">
         <option value="">— select —</option>
-        <option>Dini</option><option>Elizabeth</option><option>Elise</option><option>Gigi</option><option>Meredith</option>
+        <option>Ava</option><option>Dini</option><option>Elizabeth</option><option>Meredith</option>
         <option>Michael</option><option>Nate</option><option>Sarah</option><option>Zach</option>
       </select>
       <div class="session-required-msg" id="staff-required-msg">Please select your name before saving.</div>
@@ -1108,7 +1114,7 @@
 <script src="js/pool-calc.js?v=11"></script>
 <script src="js/daily-log.js?v=11"></script>
 <script src="js/wizard-engine.js?v=11"></script>
-<script src="js/weekly-params.js?v=11"></script>
+<script src="js/weekly-params.js?v=12"></script>
 <script src="js/equipment-checks.js?v=11"></script>
 
 </body>
